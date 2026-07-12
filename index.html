@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rodokmen — Fáze 1: datový model</title>
+<style>
+  :root{
+    --papir: #f7f2e7;
+    --papir-tmavsi: #efe6d3;
+    --linka: #cbb994;
+    --text: #3a332a;
+    --muz: #5b7fa6;
+    --zena: #b5657a;
+    --ok: #5c7a52;
+    --pozor: #b3762c;
+  }
+  * { box-sizing: border-box; }
+  body{
+    margin:0;
+    font-family: Georgia, "Times New Roman", serif;
+    background: var(--papir);
+    color: var(--text);
+    padding: 24px 32px 64px;
+  }
+  h1{ font-size: 1.6rem; margin-bottom: 4px; }
+  .podtitulek{ color:#6b6153; font-style: italic; margin-top:0; margin-bottom: 20px;}
+  .uvitani{
+    background: var(--papir-tmavsi);
+    border: 1px solid var(--linka);
+    border-radius: 10px;
+    padding: 12px 18px;
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  section{ margin-bottom: 32px; }
+  h2{
+    font-family: Arial, sans-serif;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color:#6b6153;
+    border-bottom: 1px solid var(--linka);
+    padding-bottom: 6px;
+  }
+  .stat-grid{
+    display:flex; gap:14px; flex-wrap:wrap;
+  }
+  .stat{
+    background:white; border:1px solid var(--linka); border-radius:10px;
+    padding:10px 16px; min-width:150px; font-family: Arial, sans-serif;
+  }
+  .stat b{ display:block; font-size:1.4rem; font-family: Georgia, serif; }
+  .stat span{ font-size:0.78rem; color:#6b6153; }
+
+  .kontrola-list{ list-style:none; padding:0; margin:0; }
+  .kontrola-list li{
+    padding: 6px 0 6px 28px; position:relative; font-family: Arial, sans-serif; font-size:0.92rem;
+  }
+  .kontrola-list li::before{
+    content: "✔"; position:absolute; left:0; color: var(--ok); font-weight:bold;
+  }
+  .kontrola-list li.chyba::before{ content:"✘"; color:#a33; }
+
+  table{ border-collapse: collapse; width:100%; background:white; border-radius:10px; overflow:hidden; }
+  th, td{ text-align:left; padding:6px 10px; border-bottom:1px solid #eee; font-size:0.9rem; }
+  th{ font-family: Arial, sans-serif; font-size:0.78rem; text-transform:uppercase; color:#6b6153; background:var(--papir-tmavsi); }
+  tr.zena td.jmeno{ border-left: 3px solid var(--zena); }
+  tr.muz td.jmeno{ border-left: 3px solid var(--muz); }
+  td.jmeno{ font-weight:bold; padding-left:10px; }
+  .zemrel{ color:#8a8272; }
+  .znacka{ font-family: Arial, sans-serif; font-size:0.72rem; padding:1px 6px; border-radius:8px; background:var(--papir-tmavsi); margin-left:6px; }
+  .znacka.pozor{ color: var(--pozor); border:1px solid var(--pozor); background:transparent; }
+
+  details{ background:white; border:1px solid var(--linka); border-radius:10px; padding:10px 14px; }
+  summary{ cursor:pointer; font-family:Arial, sans-serif; font-size:0.9rem; }
+  pre{ font-family: "Courier New", monospace; font-size:0.78rem; overflow:auto; max-height:500px; }
+
+  .svazky-list{ font-family: Arial, sans-serif; font-size:0.88rem; }
+  .svazky-list div{ padding:6px 0; border-bottom:1px dashed #ddd; }
+</style>
+</head>
+<body>
+
+<h1>🌳 Rodokmen — dárek pro Moniku</h1>
+<p class="podtitulek">Fáze 1 z prováděcího plánu: datový model + generátor testovacích dat</p>
+
+<div class="uvitani">
+  Tuto appku budeš mít celou uloženou v jednom souboru na svém počítači — žádné přihlašování,
+  žádný cloud. Soubor si stačí držet ve složce, kterou máš synchronizovanou s Google Diskem,
+  a o zálohu se postará Disk sám. 💛
+  <br><br>
+  <b>Tohle je zatím jen 1. fáze:</b> ověřujeme, že datový model unese reálná genealogická data
+  (neúplná data, druhé sňatky, sourozenecké větve). Vizuální strom s kartičkami a fotkami
+  přijde v další fázi.
+</div>
+
+<section>
+  <h2>Přehled testovacích dat</h2>
+  <div class="stat-grid" id="staty"></div>
+</section>
+
+<section>
+  <h2>Kontrola anomálií (co model musí zvládnout)</h2>
+  <ul class="kontrola-list" id="kontroly"></ul>
+</section>
+
+<section>
+  <h2>Osoby</h2>
+  <table>
+    <thead>
+      <tr><th>Jméno</th><th>Narození</th><th>Úmrtí</th><th>Poznámka / detail</th></tr>
+    </thead>
+    <tbody id="tabulka-osob"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Svazky (páry a jejich děti)</h2>
+  <div class="svazky-list" id="seznam-svazku"></div>
+</section>
+
+<section>
+  <h2>Syrová data (JSON)</h2>
+  <details>
+    <summary>Zobrazit / skrýt celý JSON rodokmenu</summary>
+    <pre id="json-vystup"></pre>
+  </details>
+</section>
+
+<script>
+/* ============================================================
+   DATOVÝ MODEL — viz rodokmen-idealni-plan.md, sekce 3
+   { meta, osoby: { id: {...} }, svazky: [ {...} ] }
+   Rodiče NIKDY nejsou pole "children" u osoby — pouze přes svazky.
+   ============================================================ */
+
+function generujTestovaciData() {
+  const osoby = {};
+  const svazky = [];
+
+  function pridejOsobu(id, data) {
+    osoby[id] = {
+      jmeno: data.jmeno ?? null,
+      prijmeni: data.prijmeni ?? null,
+      rodnePrijmeni: data.rodnePrijmeni ?? null,
+      narozeni: data.narozeni ?? null, // {datum, misto, presnost} | null
+      umrti: data.umrti ?? null,
+      pohlavi: data.pohlavi ?? null, // "m" | "z"
+      foto: data.foto ?? null,
+      poznamka: data.poznamka ?? null,
+      detaily: data.detaily ?? []
+    };
+  }
+
+  function pridejSvazek(id, partneri, deti, typ, od) {
+    svazky.push({ id, partneri, deti: deti ?? [], typ: typ ?? "manželství", od: od ?? null });
+  }
+
+  // ---- Generace -3: praprarodiče (jen aby model ustál hodně neúplná data) ----
+  pridejOsobu("p040", { jmeno: "Antonín", prijmeni: "Novák",
+    narozeni: { datum: "1880", misto: null, presnost: "rok" }, umrti: null, pohlavi: "m" });
+  pridejOsobu("p041", { jmeno: "Růžena", prijmeni: "Nováková", rodnePrijmeni: "Malá",
+    narozeni: { datum: "1883", misto: null, presnost: "cca" },
+    umrti: { datum: "1950", misto: null, presnost: "cca" }, pohlavi: "z" });
+  pridejSvazek("s040", ["p040", "p041"], ["p030"], "manželství", "1902");
+
+  // ---- Generace -2: prarodiče ----
+  pridejOsobu("p030", { jmeno: "Josef", prijmeni: "Novák",
+    narozeni: { datum: "1908-03-12", misto: "Turnov", presnost: "den" },
+    umrti: { datum: "1985", misto: "Turnov", presnost: "rok" }, pohlavi: "m",
+    detaily: [{ typ: "povolání", hodnota: "truhlář" }] });
+  pridejOsobu("p031", { jmeno: "Marie", prijmeni: "Nováková", rodnePrijmeni: "Dvořáková",
+    narozeni: { datum: "1912", misto: "Semily", presnost: "cca" },
+    umrti: { datum: "1998", misto: null, presnost: "rok" }, pohlavi: "z" });
+  pridejSvazek("s030", ["p030", "p031"], ["p010", "p021", "p022"], "manželství", "1933");
+
+  pridejOsobu("p032", { jmeno: "František", prijmeni: "Svoboda",
+    narozeni: { datum: "1905", misto: null, presnost: "cca" }, umrti: null, pohlavi: "m",
+    poznamka: "Datum ani místo úmrtí se v rodině nedochovaly." });
+  pridejOsobu("p033", { jmeno: "Božena", prijmeni: "Svobodová", rodnePrijmeni: "Marková",
+    narozeni: { datum: "1910", misto: "Jilemnice", presnost: "cca" },
+    umrti: { datum: "1990-11-02", misto: "Jilemnice", presnost: "den" }, pohlavi: "z" });
+  pridejSvazek("s031", ["p032", "p033"], ["p014", "p016"], "manželství", "1929");
+
+  // ---- Generace -1: rodiče kořenového páru + jejich sourozenci ----
+  pridejOsobu("p010", { jmeno: "Karel", prijmeni: "Novák",
+    narozeni: { datum: "1935-06-01", misto: "Turnov", presnost: "den" },
+    umrti: { datum: "2010", misto: "Turnov", presnost: "rok" }, pohlavi: "m",
+    detaily: [{ typ: "povolání", hodnota: "strojní inženýr" }] });
+  // sourozenci Karla — jen základní údaje, dál se nerozvíjí
+  pridejOsobu("p021", { jmeno: "Anna", prijmeni: "Nováková",
+    narozeni: { datum: "1938", misto: null, presnost: "rok" }, umrti: null, pohlavi: "z" });
+  pridejOsobu("p022", { jmeno: "Milan", prijmeni: "Novák",
+    narozeni: null, umrti: null, pohlavi: "m",
+    poznamka: "Zemřel jako dítě, přesná data neznámá." });
+
+  pridejOsobu("p011", { jmeno: "Jitka", prijmeni: "Nováková", rodnePrijmeni: "Svobodová",
+    narozeni: { datum: "1938-09-14", misto: "Jilemnice", presnost: "den" },
+    umrti: null, pohlavi: "z" });
+  pridejSvazek("s010", ["p010", "p011"], ["p001"], "manželství", "1961");
+
+  pridejOsobu("p014", { jmeno: "Vladimír", prijmeni: "Svoboda",
+    narozeni: { datum: "1932", misto: "Jilemnice", presnost: "rok" },
+    umrti: { datum: "2005", misto: null, presnost: "rok" }, pohlavi: "m" });
+  pridejOsobu("p016", { jmeno: "Eva", prijmeni: "Svobodová",
+    narozeni: { datum: "1936", misto: null, presnost: "cca" }, umrti: null, pohlavi: "z" });
+
+  pridejOsobu("p015", { jmeno: "Hana", prijmeni: "Svobodová", rodnePrijmeni: "Kučerová",
+    narozeni: { datum: "1940-02-20", misto: "Vrchlabí", presnost: "den" },
+    umrti: null, pohlavi: "z" });
+  pridejSvazek("s011", ["p014", "p015"], ["p002"], "manželství", "1963");
+
+  // ---- Generace 0: kořenový pár ----
+  pridejOsobu("p001", { jmeno: "Monika", prijmeni: "Svobodová", rodnePrijmeni: "Nováková",
+    narozeni: { datum: "1966-05-01", misto: "Turnov", presnost: "den" },
+    umrti: null, pohlavi: "z",
+    poznamka: "Kořen rodokmenu — výchozí pár, od kterého se vše odvíjí." });
+  pridejOsobu("p002", { jmeno: "Pavel", prijmeni: "Svoboda",
+    narozeni: { datum: "1964-11-23", misto: "Vrchlabí", presnost: "den" },
+    umrti: null, pohlavi: "m" });
+  pridejSvazek("s001", ["p001", "p002"], ["p003", "p004", "p005"], "manželství", "1988");
+
+  // ---- Generace +1: děti kořenového páru ----
+  pridejOsobu("p003", { jmeno: "Lucie", prijmeni: "Svobodová",
+    narozeni: { datum: "1989-04-10", misto: "Turnov", presnost: "den" }, umrti: null, pohlavi: "z" });
+  pridejOsobu("p006", { jmeno: "Tomáš", prijmeni: "Dvořák",
+    narozeni: { datum: "1987-01-15", misto: "Liberec", presnost: "den" }, umrti: null, pohlavi: "m" });
+  pridejSvazek("s003", ["p003", "p006"], ["p007", "p008"], "manželství", "2012");
+
+  pridejOsobu("p004", { jmeno: "Martin", prijmeni: "Svoboda",
+    narozeni: { datum: "1991-08-02", misto: "Turnov", presnost: "den" }, umrti: null, pohlavi: "m" });
+  // Martin — DRUHÝ SŇATEK: dva svazky jako partner, oba se svými dětmi
+  pridejOsobu("p009", { jmeno: "Petra", prijmeni: "Bílá",
+    narozeni: { datum: "1992", misto: null, presnost: "rok" }, umrti: null, pohlavi: "z" });
+  pridejSvazek("s004a", ["p004", "p009"], ["p017"], "manželství", "2014");
+  pridejOsobu("p018", { jmeno: "Simona", prijmeni: "Malá",
+    narozeni: { datum: "1994-03-30", misto: null, presnost: "den" }, umrti: null, pohlavi: "z" });
+  pridejSvazek("s004b", ["p004", "p018"], ["p019"], "manželství", "2021");
+
+  pridejOsobu("p005", { jmeno: "Jana", prijmeni: "Svobodová",
+    narozeni: { datum: "1994", misto: "Turnov", presnost: "cca" }, umrti: null, pohlavi: "z",
+    poznamka: "Zatím bez svazku — svobodná." });
+
+  // ---- Generace +2: vnoučata ----
+  pridejOsobu("p007", { jmeno: "Adam", prijmeni: "Dvořák",
+    narozeni: { datum: "2013-07-19", misto: "Turnov", presnost: "den" }, umrti: null, pohlavi: "m" });
+  pridejOsobu("p008", { jmeno: "Eliška", prijmeni: "Dvořáková",
+    narozeni: { datum: "2016-12-05", misto: "Turnov", presnost: "den" }, umrti: null, pohlavi: "z" });
+  pridejOsobu("p017", { jmeno: "Vojtěch", prijmeni: "Svoboda",
+    narozeni: { datum: "2015-05-22", misto: null, presnost: "den" }, umrti: null, pohlavi: "m" });
+  pridejOsobu("p019", { jmeno: "Sofie", prijmeni: "Svobodová",
+    narozeni: { datum: "2022-09-09", misto: null, presnost: "den" }, umrti: null, pohlavi: "z" });
+
+  const meta = {
+    verze: 1,
+    nazev: "Rodina Svobodova-Novakova (TESTOVACI DATA)",
+    koren: "s001",
+    upraveno: new Date().toISOString().slice(0, 10)
+  };
+
+  return { meta, osoby, svazky };
+}
+
+/* ============================================================
+   VALIDACE — ověřuje, že model skutečně obsahuje anomálie,
+   se kterými musí appka umět elegantně pracovat.
+   ============================================================ */
+function validujData(strom) {
+  const { osoby, svazky } = strom;
+  const idOsob = Object.keys(osoby);
+  const kontroly = [];
+
+  // 1) neúplná/neznámá data
+  const bezDataNarozeni = idOsob.filter(id => !osoby[id].narozeni);
+  kontroly.push({
+    ok: bezDataNarozeni.length > 0,
+    text: `Osoby bez data narození (${bezDataNarozeni.length}): ${bezDataNarozeni.join(", ") || "—"}`
+  });
+
+  const ziviciOsoby = idOsob.filter(id => osoby[id].narozeni && !osoby[id].umrti);
+  kontroly.push({
+    ok: ziviciOsoby.length > 0,
+    text: `Osoby bez data úmrtí — model je bere jako žijící/neznámé (${ziviciOsoby.length})`
+  });
+
+  // 2) přesnost "cca" se skutečně používá
+  const ccaDatumy = idOsob.filter(id =>
+    osoby[id].narozeni?.presnost === "cca" || osoby[id].umrti?.presnost === "cca");
+  kontroly.push({
+    ok: ccaDatumy.length > 0,
+    text: `Data s přesností „cca" (${ccaDatumy.length} osob)`
+  });
+
+  // 3) druhý sňatek — osoba figuruje jako partner ve 2+ svazcích
+  const pocetSvazkuNaOsobu = {};
+  svazky.forEach(s => s.partneri.forEach(p => {
+    pocetSvazkuNaOsobu[p] = (pocetSvazkuNaOsobu[p] || 0) + 1;
+  }));
+  const druheSnatky = Object.entries(pocetSvazkuNaOsobu).filter(([, n]) => n > 1).map(([id]) => id);
+  kontroly.push({
+    ok: druheSnatky.length > 0,
+    text: `Osoby s více než jedním svazkem — druhé sňatky (${druheSnatky.length}): ${druheSnatky.join(", ") || "—"}`
+  });
+
+  // 4) sourozenecké větve u předků (svazek se 2+ dětmi, kde jen jedno dítě pokračuje dál jako předek)
+  const svazkySeSourozenci = svazky.filter(s => s.deti.length > 1);
+  kontroly.push({
+    ok: svazkySeSourozenci.length > 0,
+    text: `Svazky s více dětmi / sourozeneckou větví (${svazkySeSourozenci.length})`
+  });
+
+  // 5) graf, ne strom — každá osoba max. 1x jako "dítě" (kontrola konzistence dat)
+  const jakoDite = {};
+  svazky.forEach(s => s.deti.forEach(d => { jakoDite[d] = (jakoDite[d] || 0) + 1; }));
+  const duplicitniRodice = Object.entries(jakoDite).filter(([, n]) => n > 1);
+  kontroly.push({
+    ok: duplicitniRodice.length === 0,
+    text: duplicitniRodice.length === 0
+      ? "Konzistence: žádná osoba není dítětem ve dvou svazcích zároveň"
+      : `CHYBA: osoba uvedena jako dítě ve více svazcích: ${duplicitniRodice.map(([id]) => id).join(", ")}`
+  });
+
+  // 6) referenční integrita ID
+  const neznamaId = [];
+  svazky.forEach(s => [...s.partneri, ...s.deti].forEach(id => {
+    if (!osoby[id]) neznamaId.push(id);
+  }));
+  kontroly.push({
+    ok: neznamaId.length === 0,
+    text: neznamaId.length === 0
+      ? "Referenční integrita: všechna ID ve svazcích existují v seznamu osob"
+      : `CHYBA: neexistující ID v svazcích: ${neznamaId.join(", ")}`
+  });
+
+  return kontroly;
+}
+
+function formatujDatum(d) {
+  if (!d || !d.datum) return "?";
+  const znak = d.presnost === "cca" ? "cca " : "";
+  return znak + d.datum;
+}
+
+function vykresli() {
+  const strom = generujTestovaciData();
+  const osoby = strom.osoby;
+  const idOsob = Object.keys(osoby);
+
+  // Statistiky
+  const zijici = idOsob.filter(id => osoby[id].narozeni && !osoby[id].umrti).length;
+  document.getElementById("staty").innerHTML = `
+    <div class="stat"><b>${idOsob.length}</b><span>osob celkem</span></div>
+    <div class="stat"><b>${strom.svazky.length}</b><span>svazků (párů)</span></div>
+    <div class="stat"><b>${zijici}</b><span>bez data úmrtí (žijící/neznámo)</span></div>
+    <div class="stat"><b>4</b><span>generace + praprarodiče navíc</span></div>
+  `;
+
+  // Kontroly
+  const kontroly = validujData(strom);
+  document.getElementById("kontroly").innerHTML = kontroly
+    .map(k => `<li class="${k.ok ? "" : "chyba"}">${k.text}</li>`)
+    .join("");
+
+  // Tabulka osob (seřazeno podle roku narození, pokud existuje)
+  const radky = idOsob
+    .slice()
+    .sort((a, b) => {
+      const rokA = parseInt((osoby[a].narozeni?.datum || "9999"), 10);
+      const rokB = parseInt((osoby[b].narozeni?.datum || "9999"), 10);
+      return rokA - rokB;
+    })
+    .map(id => {
+      const o = osoby[id];
+      const zemrelTrida = o.umrti ? "zemrel" : "";
+      const rodovaTrida = o.pohlavi === "z" ? "zena" : "muz";
+      const detail = [
+        o.poznamka,
+        ...(o.detaily || []).map(d => `${d.typ}: ${d.hodnota}`)
+      ].filter(Boolean).join(" · ");
+      return `<tr class="${rodovaTrida}">
+        <td class="jmeno">${o.jmeno ?? "?"} ${o.prijmeni ?? ""}${o.rodnePrijmeni ? " (roz. " + o.rodnePrijmeni + ")" : ""}
+          <span class="znacka">${id}</span></td>
+        <td>${formatujDatum(o.narozeni)}${o.narozeni?.misto ? " · " + o.narozeni.misto : ""}</td>
+        <td class="${zemrelTrida}">${o.umrti ? "† " + formatujDatum(o.umrti) : (o.narozeni ? "žije / neznámo" : "?")}</td>
+        <td>${detail || "—"}</td>
+      </tr>`;
+    }).join("");
+  document.getElementById("tabulka-osob").innerHTML = radky;
+
+  // Seznam svazků
+  document.getElementById("seznam-svazku").innerHTML = strom.svazky.map(s => {
+    const jmenaPartneru = s.partneri.map(id => osoby[id]?.jmeno + " " + osoby[id]?.prijmeni).join(" & ");
+    const jmenaDeti = s.deti.map(id => osoby[id]?.jmeno).join(", ") || "—";
+    const druhySvazekZnacka = strom.svazky.filter(x => x.partneri.some(p => s.partneri.includes(p)) && x.id !== s.id).length
+      ? '<span class="znacka pozor">druhý sňatek</span>' : "";
+    return `<div><b>${s.id}</b> — ${jmenaPartneru} ${druhySvazekZnacka}<br>
+      od ${s.od ?? "?"} · děti: ${jmenaDeti}</div>`;
+  }).join("");
+
+  // Syrová data
+  document.getElementById("json-vystup").textContent = JSON.stringify(strom, null, 2);
+}
+
+vykresli();
+</script>
+</body>
+</html>
