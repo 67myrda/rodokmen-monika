@@ -34,6 +34,8 @@
   }
   button:hover{opacity:.88;}
   button.sec{background:#efe7d6; color:var(--tmava);}
+  button.btn-rozbalit{background:#3d7a5c; color:#fff;}
+  button.btn-sbalit{background:#a8552f; color:#fff;}
   table{width:100%; border-collapse:collapse; font-size:13px;}
   th,td{text-align:left; padding:5px 8px; border-bottom:1px solid #eee;}
   th{color:var(--akcent); font-weight:normal; border-bottom:2px solid var(--linka);}
@@ -82,16 +84,32 @@
   .d-znacka circle{ fill:#c9781a; }
   .d-znacka text{ font-size:10px; fill:#fff; text-anchor:middle; font-family:sans-serif; font-weight:bold; }
   .lista-ovladani{ margin-bottom:10px; }
-  #dPanel{
-    display:none; background:#fbf1e4; border:1px solid #e3cfa0; border-radius:6px;
-    padding:12px 14px; margin-top:12px; font-size:13px;
-  }
-  #dPanel textarea{
-    width:100%; min-height:60px; font-family:inherit; font-size:13px;
-    border:1px solid var(--linka); border-radius:6px; padding:6px; margin-top:6px;
-  }
   #stromWrap{ cursor:grab; }
   #stromWrap.tahnu{ cursor:grabbing; }
+
+  /* ---------- FÁZE 4: boční detail panel ---------- */
+  #detailOverlay{
+    position:fixed; inset:0; background:rgba(58,49,40,.25);
+    display:none; z-index:40;
+  }
+  #detailOverlay.otevreno{ display:block; }
+  #detailPanel{
+    position:fixed; top:0; right:0; width:380px; max-width:92vw; height:100vh;
+    background:#fffdf8; border-left:1px solid var(--linka);
+    box-shadow:-6px 0 18px rgba(0,0,0,.12);
+    transform:translateX(100%); transition:transform .22s ease;
+    z-index:50; overflow-y:auto; padding:20px;
+  }
+  #detailPanel.otevreno{ transform:translateX(0); }
+  #detailPanel label{ display:block; font-size:12px; color:var(--akcent); margin-top:10px; margin-bottom:3px; }
+  #detailPanel input, #detailPanel select, #detailPanel textarea{
+    width:100%; padding:7px 9px; border:1px solid var(--linka); border-radius:6px;
+    font-family:inherit; font-size:13px; background:#fff; color:var(--tmava);
+  }
+  #detailPanel h2{ font-size:18px; margin:0; }
+  #detailPanel h3{ font-size:13px; color:var(--akcent); margin:0 0 8px 0; }
+  .svazek-box{ margin-bottom:8px; padding:8px 10px; background:#f8f4ea; border-radius:6px; font-size:13px; }
+  .pridat-box{ margin-top:10px; padding:10px; background:#fbf1e4; border-radius:6px; }
 </style>
 </head>
 <body>
@@ -100,21 +118,20 @@
 <div class="podtitul">Datový model, generátor testovacích dat (7.1) a layout engine + SVG vykreslení (7.2)</div>
 
 <div class="panel">
-  <h2>Strom — layout engine + interakce (fáze 2+3)</h2>
+  <h2>Strom — layout engine + interakce (fáze 2+3+4)</h2>
   <div class="lista-ovladani">
     <button onclick="domu()">🏠 Domů</button>
-    <button class="sec" onclick="rozbalitVse()">Rozbalit vše</button>
-    <button class="sec" onclick="sbalitVse()">Sbalit vše</button>
-    <span style="font-size:12px; color:#8a8071; margin-left:8px;">Tažení myší = posun, kolečko = zoom, ▸/▾ na kartě = sbalit větev, oranžové "D" = další vazba</span>
+    <button class="btn-rozbalit" onclick="rozbalitVse()">Rozbalit vše</button>
+    <button class="btn-sbalit" onclick="sbalitVse()">Sbalit vše</button>
+    <span style="font-size:12px; color:#8a8071; margin-left:8px;">Klik na kartu = detail a editace, tažení myší = posun, kolečko = zoom, − na kartě = sbalit větev, oranžové "D" = má i další (dosud nevykreslené) svazky</span>
   </div>
   <div id="stromWrap"></div>
   <div id="prekryvVysledek" style="margin-top:10px; font-size:13px;"></div>
-  <div id="dPanel"></div>
-  <div class="limit-box">
-    <b>Známé omezení:</b> vedlejší větve (druhé manželství ancestora) se dají otevřít přes
-    oranžovou "D" značku na kartě — zatím jen jako náhled + textová poznámka, ne plné
-    přidání osoby do stromu (to přijde s fází 4, detail panel a editace).
-  </div>
+</div>
+
+<div id="detailOverlay" onclick="zavriDetail()"></div>
+<div id="detailPanel">
+  <div id="detailObsah"></div>
 </div>
 
 <div class="panel">
@@ -361,27 +378,27 @@ function zkontrolujData(d){
   return vysledky;
 }
 
-const kontroly = zkontrolujData(data);
-
-/* ==========================================================
-   VYKRESLENÍ (jen ověřovací výpis, NE finální layout stromu —
-   ten je záměrně až fáze 7.2 podle plánu)
-   ========================================================== */
 function pocetOsob(d){ return Object.keys(d.osoby).length; }
 function pocetSvazku(d){ return d.svazky.length; }
 function pocetZijicich(d){ return Object.values(d.osoby).filter(o=>!o.umrti).length; }
 function pocetNeurcitych(d){ return Object.values(d.osoby).filter(o=>o.narozeni.presnost!=="den").length; }
 
-document.getElementById("statistiky").innerHTML = `
-  <div class="stat"><b>${pocetOsob(data)}</b>osob celkem</div>
-  <div class="stat"><b>${pocetSvazku(data)}</b>svazků (párů)</div>
-  <div class="stat"><b>${pocetZijicich(data)}</b>bez data úmrtí</div>
-  <div class="stat"><b>${pocetNeurcitych(data)}</b>s nepřesným/chybějícím datem</div>
-`;
-
-document.getElementById("kontrolyVysledek").innerHTML = kontroly.map(k=>
-  `<div class="kontrola-radek">${k.ok? "✅":"⚠️"} ${k.text}</div>`
-).join("");
+function vykresliStatistiky(d){
+  document.getElementById("statistiky").innerHTML = `
+    <div class="stat"><b>${pocetOsob(d)}</b>osob celkem</div>
+    <div class="stat"><b>${pocetSvazku(d)}</b>svazků (párů)</div>
+    <div class="stat"><b>${pocetZijicich(d)}</b>bez data úmrtí</div>
+    <div class="stat"><b>${pocetNeurcitych(d)}</b>s nepřesným/chybějícím datem</div>
+  `;
+}
+function vykresliKontroly(d){
+  const kontroly = zkontrolujData(d);
+  document.getElementById("kontrolyVysledek").innerHTML = kontroly.map(k=>
+    `<div class="kontrola-radek">${k.ok? "✅":"⚠️"} ${k.text}</div>`
+  ).join("");
+}
+vykresliStatistiky(data);
+vykresliKontroly(data);
 
 function formatDatum(d){
   if(!d) return "?";
@@ -454,11 +471,11 @@ function najdiSvazkyJakoPartner(d, personId){
   return d.svazky.filter(s => s.partneri.includes(personId));
 }
 
-// --- STAV (fáze 3): sbalené větve, poznámky k D-značkám, vybraná osoba, pohled ---
+// --- STAV (fáze 3+4): sbalené větve, vybrané osoby, pohled ---
 let sbalenoNahoru = new Set();
 let sbalenoDolu = new Set();
-let dPoznamky = {};
 let vybraneOsoby = new Set();
+let vybranySvazekId = null;
 let pan = {x:0, y:0, scale:1};
 let panInicializovan = false;
 let posledniBBox = null;
@@ -689,7 +706,7 @@ function vykresliStrom(d){
       </g>`;
     }
     if(k.extraUnions && k.extraUnions.length>0){
-      vnitrek += `<g class="d-znacka" transform="translate(${CARD_W-12},4)" onclick="event.stopPropagation(); otevriDPanel('${k.id}')">
+      vnitrek += `<g class="d-znacka" transform="translate(${CARD_W-12},4)" onclick="event.stopPropagation(); vyberOsobu('${k.id}', false)">
         <circle r="9"/><text y="4">D</text>
       </g>`;
     }
@@ -726,31 +743,257 @@ function domu(){
 }
 function toggleNahoru(id){ sbalenoNahoru.has(id) ? sbalenoNahoru.delete(id) : sbalenoNahoru.add(id); vykresliStrom(data); }
 function toggleDolu(id){ sbalenoDolu.has(id) ? sbalenoDolu.delete(id) : sbalenoDolu.add(id); vykresliStrom(data); }
-function rozbalitVse(){ sbalenoNahoru.clear(); sbalenoDolu.clear(); vykresliStrom(data); }
+function rozbalitVse(){ sbalenoNahoru.clear(); sbalenoDolu.clear(); vykresliStrom(data); domu(); }
 function sbalitVse(){
   const ru = data.svazky.find(s=>s.id===data.meta.koren);
   sbalenoNahoru = new Set(ru.partneri);
   sbalenoDolu = new Set(ru.deti);
   vykresliStrom(data);
+  domu();
 }
 
-/* ---------- "D" značka — vedlejší svazky (fáze 3, minimální náhled) ---------- */
-function otevriDPanel(personId){
-  const o = data.osoby[personId];
-  const unie = najdiSvazkyJakoPartner(data, personId);
-  let html = `<b>Další vazby: ${o.jmeno} ${o.prijmeni}</b><br><br>`;
-  unie.forEach(u=>{
-    const partnerId = u.partneri.find(p=>p!==personId);
-    const partner = partnerId ? data.osoby[partnerId] : null;
-    const detiJm = u.deti.map(cid => data.osoby[cid]? data.osoby[cid].jmeno+" "+data.osoby[cid].prijmeni : cid).join(", ") || "bez dětí";
-    html += `<div style="margin-bottom:6px;">• ${u.typ}${u.od? ' od '+u.od:''} s <b>${partner? partner.jmeno+" "+partner.prijmeni : '(neznámý partner)'}</b> — děti: ${detiJm}</div>`;
+/* ==========================================================
+   FÁZE 4 — DETAIL PANEL, EDITACE, PŘIDÁVÁNÍ OSOB (§7 plánu)
+   Panel se otevírá klikem na kartu ve stromu I klikem na "D" značku
+   (podle rozhodnutí Myrdy 13.7.2026 — obojí vede na stejný panel).
+   Fotky (o.foto) záměrně nejsou v editačním formuláři — to je fáze 5.
+   ========================================================== */
+
+function escAttr(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); }
+function escHtml(s){ return String(s==null?'':s).replace(/</g,'&lt;'); }
+
+function novaOsobaId(){
+  let n=1;
+  while(data.osoby['p'+String(n).padStart(3,'0')]) n++;
+  return 'p'+String(n).padStart(3,'0');
+}
+function novySvazekId(){
+  let n=1;
+  while(data.svazky.some(s=>s.id==='s'+String(n).padStart(3,'0'))) n++;
+  return 's'+String(n).padStart(3,'0');
+}
+
+function prekresliVse(){
+  vykresliOsoby(data);
+  vykresliSvazky(data);
+  document.getElementById("jsonView").value = JSON.stringify(data, null, 2);
+  vykresliStatistiky(data);
+  vykresliKontroly(data);
+  vykresliStrom(data);
+}
+
+function vyberOsobu(id, sePosunemVTabulce){
+  vybraneOsoby = new Set([id]);
+  oznacRadekOsoby();
+  vykresliDetail(id);
+  document.getElementById('detailPanel').classList.add('otevreno');
+  document.getElementById('detailOverlay').classList.add('otevreno');
+  if(sePosunemVTabulce){
+    const tr = document.querySelector('tr[data-osoba-id="'+id+'"]');
+    if(tr && tr.scrollIntoView) tr.scrollIntoView({block:'center', behavior:'smooth'});
+  }
+  vykresliStrom(data);
+}
+function zavriDetail(){
+  document.getElementById('detailPanel').classList.remove('otevreno');
+  document.getElementById('detailOverlay').classList.remove('otevreno');
+}
+
+function vykresliDetail(id){
+  const o = data.osoby[id];
+  if(!o) return;
+  document.getElementById('detailObsah').innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <h2>${escHtml(o.jmeno)} ${escHtml(o.prijmeni)}</h2>
+      <button class="sec" onclick="zavriDetail()" style="padding:4px 10px;">✕</button>
+    </div>
+    <div style="font-size:11px; color:#999; margin-top:2px;">${id}</div>
+
+    <label>Jméno</label><input id="pf_jmeno" value="${escAttr(o.jmeno)}">
+    <label>Příjmení</label><input id="pf_prijmeni" value="${escAttr(o.prijmeni)}">
+    <label>Rodné příjmení</label><input id="pf_rodne" value="${escAttr(o.rodnePrijmeni||'')}">
+    <label>Pohlaví</label>
+    <select id="pf_pohlavi">
+      <option value="z" ${o.pohlavi==='z'?'selected':''}>žena</option>
+      <option value="m" ${o.pohlavi==='m'?'selected':''}>muž</option>
+    </select>
+
+    <label>Datum narození (RRRR-MM-DD nebo jen RRRR)</label>
+    <input id="pf_nar_datum" value="${escAttr(o.narozeni.datum||'')}">
+    <label>Místo narození</label><input id="pf_nar_misto" value="${escAttr(o.narozeni.misto||'')}">
+    <label>Přesnost narození</label>
+    <select id="pf_nar_presnost">
+      <option value="den" ${o.narozeni.presnost==='den'?'selected':''}>den</option>
+      <option value="rok" ${o.narozeni.presnost==='rok'?'selected':''}>rok</option>
+      <option value="cca" ${o.narozeni.presnost==='cca'?'selected':''}>cca</option>
+    </select>
+
+    <label style="margin-top:14px;"><input type="checkbox" id="pf_zemrel" ${o.umrti?'checked':''} onchange="document.getElementById('pf_umrti_pole').style.display=this.checked?'block':'none'" style="width:auto; margin-right:6px; vertical-align:middle;">Zemřel/a</label>
+    <div id="pf_umrti_pole" style="display:${o.umrti?'block':'none'}">
+      <label>Datum úmrtí</label><input id="pf_umr_datum" value="${escAttr(o.umrti? (o.umrti.datum||'') : '')}">
+      <label>Přesnost úmrtí</label>
+      <select id="pf_umr_presnost">
+        <option value="den" ${o.umrti&&o.umrti.presnost==='den'?'selected':''}>den</option>
+        <option value="rok" ${o.umrti&&o.umrti.presnost==='rok'?'selected':''}>rok</option>
+        <option value="cca" ${o.umrti&&o.umrti.presnost==='cca'?'selected':''}>cca</option>
+      </select>
+    </div>
+
+    <label>Poznámka</label><textarea id="pf_poznamka" style="min-height:70px;">${escHtml(o.poznamka||'')}</textarea>
+
+    <button onclick="ulozitDetail('${id}')" style="margin-top:14px;">💾 Uložit změny</button>
+
+    <hr style="margin:18px 0; border:none; border-top:1px solid var(--linka);">
+    <h3>Rodina a svazky</h3>
+    ${vykresliSvazkyOsoby(id)}
+
+    <hr style="margin:18px 0; border:none; border-top:1px solid var(--linka);">
+    <h3>Přidat vztah</h3>
+    <div>
+      <button class="sec" onclick="zobrazFormularPridani('${id}','partner')">+ Partner</button>
+      <button class="sec" onclick="zobrazFormularPridani('${id}','dite')">+ Dítě</button>
+      <button class="sec" onclick="zobrazFormularPridani('${id}','rodic')">+ Rodič</button>
+      <button class="sec" onclick="zobrazFormularPridani('${id}','sourozenec')">+ Sourozenec</button>
+    </div>
+    <div id="pf_pridat_form"></div>
+  `;
+}
+
+function vykresliSvazkyOsoby(id){
+  let html = '';
+  const rs = najdiRodicovskySvazek(data, id);
+  if(rs){
+    const jm = rs.partneri.map(pid => data.osoby[pid] ? escHtml(data.osoby[pid].jmeno+' '+data.osoby[pid].prijmeni) : '(neznámý)').join(' & ');
+    html += `<div style="margin-bottom:8px; font-size:13px;"><b>Rodiče:</b> ${jm}</div>`;
+  } else {
+    html += `<div style="margin-bottom:8px; font-size:13px; color:#999;">Rodiče nejsou zapsáni.</div>`;
+  }
+  const uniony = najdiSvazkyJakoPartner(data, id);
+  if(uniony.length===0){
+    html += `<div style="font-size:13px; color:#999;">Žádné vlastní svazky.</div>`;
+  }
+  uniony.forEach(u=>{
+    const partnerId = u.partneri.find(p=>p!==id);
+    const partnerJm = partnerId ? (data.osoby[partnerId] ? escHtml(data.osoby[partnerId].jmeno+' '+data.osoby[partnerId].prijmeni) : partnerId) : '(neznámý partner)';
+    const detiJm = u.deti.map(cid => data.osoby[cid] ? escHtml(data.osoby[cid].jmeno+' '+data.osoby[cid].prijmeni) : cid).join(', ') || 'bez dětí';
+    html += `<div class="svazek-box">
+      <div><b>${escHtml(u.typ)}</b>${u.od? ' od '+escHtml(u.od):''} — ${partnerJm}</div>
+      <div style="font-size:12px; color:#8a8071; margin-top:2px;">Děti: ${detiJm}</div>
+      <button class="sec" style="margin-top:6px; font-size:12px; padding:4px 8px;" onclick="zobrazFormularPridani('${id}','dite','${u.id}')">+ dítě do tohoto svazku</button>
+    </div>`;
   });
-  html += `<label style="font-size:12px; color:#8a8071;">Poznámka (zatím jen v paměti prohlížeče — ukládání do souboru přijde ve fázi 6):</label>
-    <textarea oninput="dPoznamky['${personId}']=this.value">${dPoznamky[personId]||''}</textarea>
-    <div style="margin-top:8px;"><button class="sec" onclick="document.getElementById('dPanel').style.display='none'">Zavřít</button></div>`;
-  const panel = document.getElementById('dPanel');
-  panel.innerHTML = html;
-  panel.style.display = 'block';
+  return html;
+}
+
+function zobrazFormularPridani(id, typ, svazekId){
+  const cil = document.getElementById('pf_pridat_form');
+  let vyberSvazku = '';
+
+  if(typ==='dite' && !svazekId){
+    const uniony = najdiSvazkyJakoPartner(data, id);
+    if(uniony.length>1){
+      vyberSvazku = `<label>Do kterého svazku patří dítě?</label><select id="pf_cilovy_svazek">
+        ${uniony.map(u=>{
+          const pid = u.partneri.find(p=>p!==id);
+          const pj = pid ? (data.osoby[pid]? escHtml(data.osoby[pid].jmeno) : pid) : 'neznámý rodič';
+          return `<option value="${u.id}">${escHtml(u.typ)} s ${pj}</option>`;
+        }).join('')}
+      </select>`;
+    } else if(uniony.length===1){
+      svazekId = uniony[0].id;
+    } else {
+      vyberSvazku = `<div style="font-size:12px; color:#a33; margin-top:6px;">Osoba zatím nemá žádný svazek — dítě se založí s neznámým druhým rodičem (můžeš doplnit později).</div>`;
+    }
+  }
+  if(typ==='rodic'){
+    const rs = najdiRodicovskySvazek(data, id);
+    if(rs && rs.partneri.filter(Boolean).length>=2){
+      cil.innerHTML = `<div style="color:#a33; font-size:12px; margin-top:8px;">Tato osoba už má oba rodiče zapsané. Uprav je kliknutím na jejich vlastní kartu.</div>`;
+      return;
+    }
+  }
+  if(typ==='sourozenec' && !najdiRodicovskySvazek(data, id)){
+    cil.innerHTML = `<div style="color:#a33; font-size:12px; margin-top:8px;">Osoba zatím nemá zapsané rodiče — nejdřív přidej rodiče, pak půjde přidat i sourozence.</div>`;
+    return;
+  }
+
+  const nadpis = {partner:'Nový partner', dite:'Nové dítě', rodic:'Nový rodič', sourozenec:'Nový sourozenec'}[typ];
+  cil.innerHTML = `
+    <div class="pridat-box">
+      <b>${nadpis}</b>
+      ${vyberSvazku}
+      <label>Jméno</label><input id="npf_jmeno">
+      <label>Příjmení</label><input id="npf_prijmeni">
+      <label>Pohlaví</label>
+      <select id="npf_pohlavi"><option value="z">žena</option><option value="m">muž</option></select>
+      <label>Rok narození (nepovinné)</label><input id="npf_rok">
+      <div style="margin-top:10px;">
+        <button onclick="ulozitNovouOsobu('${id}','${typ}','${svazekId||''}')">Přidat</button>
+        <button class="sec" onclick="document.getElementById('pf_pridat_form').innerHTML=''">Zrušit</button>
+      </div>
+    </div>`;
+}
+
+function ulozitNovouOsobu(id, typ, svazekId){
+  const jmeno = document.getElementById('npf_jmeno').value.trim();
+  const prijmeni = document.getElementById('npf_prijmeni').value.trim();
+  const pohlavi = document.getElementById('npf_pohlavi').value;
+  const rok = document.getElementById('npf_rok').value.trim();
+  if(!jmeno || !prijmeni){ alert('Vyplň prosím jméno i příjmení.'); return; }
+
+  const novyId = novaOsobaId();
+  data.osoby[novyId] = {
+    jmeno, prijmeni, rodnePrijmeni:null,
+    narozeni:{datum: rok||null, misto:null, presnost:'rok'},
+    umrti:null, pohlavi, foto:null, poznamka:'', detaily:[]
+  };
+
+  if(typ==='partner'){
+    data.svazky.push({id: novySvazekId(), partneri:[id, novyId], deti:[], typ:'manželství', od:null});
+  } else if(typ==='dite'){
+    const vyberEl = document.getElementById('pf_cilovy_svazek');
+    const cilId = vyberEl ? vyberEl.value : svazekId;
+    if(cilId){
+      data.svazky.find(s=>s.id===cilId).deti.push(novyId);
+    } else {
+      data.svazky.push({id: novySvazekId(), partneri:[id], deti:[novyId], typ:'neznámé', od:null});
+    }
+  } else if(typ==='rodic'){
+    const rs = najdiRodicovskySvazek(data, id);
+    if(rs){
+      rs.partneri.push(novyId);
+    } else {
+      data.svazky.push({id: novySvazekId(), partneri:[novyId], deti:[id], typ:'neznámé', od:null});
+    }
+  } else if(typ==='sourozenec'){
+    const rs = najdiRodicovskySvazek(data, id);
+    rs.deti.push(novyId);
+  }
+
+  prekresliVse();
+  vyberOsobu(novyId, false);
+}
+
+function ulozitDetail(id){
+  const o = data.osoby[id];
+  o.jmeno = document.getElementById('pf_jmeno').value.trim();
+  o.prijmeni = document.getElementById('pf_prijmeni').value.trim();
+  o.rodnePrijmeni = document.getElementById('pf_rodne').value.trim() || null;
+  o.pohlavi = document.getElementById('pf_pohlavi').value;
+  o.narozeni = {
+    datum: document.getElementById('pf_nar_datum').value.trim() || null,
+    misto: document.getElementById('pf_nar_misto').value.trim() || null,
+    presnost: document.getElementById('pf_nar_presnost').value
+  };
+  const zemrel = document.getElementById('pf_zemrel').checked;
+  o.umrti = zemrel ? {
+    datum: document.getElementById('pf_umr_datum').value.trim() || null,
+    presnost: document.getElementById('pf_umr_presnost').value
+  } : null;
+  o.poznamka = document.getElementById('pf_poznamka').value;
+
+  prekresliVse();
+  vykresliDetail(id);
 }
 
 /* ---------- křížové zvýraznění tabulky ↔ strom ---------- */
@@ -758,14 +1001,27 @@ function oznacRadekOsoby(){
   document.querySelectorAll('tr[data-osoba-id]').forEach(tr =>
     tr.classList.toggle('zvyrazneno-radek', vybraneOsoby.has(tr.dataset.osobaId)));
 }
-function zvyrazniOsobu(id){
-  vybraneOsoby = new Set([id]);
-  oznacRadekOsoby();
-  vykresliStrom(data);
-}
-function zvyrazniSvazek(id){
+function oznacRadekSvazku(id){
   document.querySelectorAll('tr[data-svazek-id]').forEach(tr =>
     tr.classList.toggle('zvyrazneno-radek', tr.dataset.svazekId===id));
+}
+function odznacVse(){
+  vybraneOsoby = new Set();
+  vybranySvazekId = null;
+  oznacRadekOsoby();
+  oznacRadekSvazku(null);
+  zavriDetail();
+  vykresliStrom(data);
+}
+function zvyrazniOsobu(id){
+  vybranySvazekId = null;
+  if(vybraneOsoby.size===1 && vybraneOsoby.has(id)){ odznacVse(); return; }
+  vyberOsobu(id, false);
+}
+function zvyrazniSvazek(id){
+  if(vybranySvazekId===id){ odznacVse(); return; }
+  vybranySvazekId = id;
+  oznacRadekSvazku(id);
   const s = data.svazky.find(x=>x.id===id);
   if(!s) return;
   // zvýraznit OBA partnery najednou (dřív se zvýraznil jen první — opraveno)
@@ -774,11 +1030,9 @@ function zvyrazniSvazek(id){
   vykresliStrom(data);
 }
 function zvyrazniZeStromu(id){
-  vybraneOsoby = new Set([id]);
-  oznacRadekOsoby();
-  const tr = document.querySelector('tr[data-osoba-id="'+id+'"]');
-  if(tr && tr.scrollIntoView) tr.scrollIntoView({block:'center', behavior:'smooth'});
-  vykresliStrom(data);
+  vybranySvazekId = null;
+  if(vybraneOsoby.size===1 && vybraneOsoby.has(id)){ odznacVse(); return; }
+  vyberOsobu(id, true);
 }
 
 vykresliStrom(data);
@@ -786,16 +1040,17 @@ vykresliStrom(data);
 /* ---------- pan (tažení myší) a zoom (kolečko) ---------- */
 (function(){
   const wrap = document.getElementById('stromWrap');
-  let tahnu = false, posledniX = 0, posledniY = 0;
+  let tahnu = false, posledniX = 0, posledniY = 0, tazeniProbehlo = false;
   wrap.addEventListener('mousedown', e => {
-    tahnu = true; posledniX = e.clientX; posledniY = e.clientY;
+    tahnu = true; posledniX = e.clientX; posledniY = e.clientY; tazeniProbehlo = false;
     wrap.classList.add('tahnu');
   });
   window.addEventListener('mouseup', () => { tahnu = false; wrap.classList.remove('tahnu'); });
   window.addEventListener('mousemove', e => {
     if(!tahnu) return;
-    pan.x += (e.clientX - posledniX);
-    pan.y += (e.clientY - posledniY);
+    const dx = e.clientX - posledniX, dy = e.clientY - posledniY;
+    if(Math.abs(dx) > 2 || Math.abs(dy) > 2) tazeniProbehlo = true;
+    pan.x += dx; pan.y += dy;
     posledniX = e.clientX; posledniY = e.clientY;
     aplikujTransform();
   });
@@ -804,10 +1059,13 @@ vykresliStrom(data);
     pan.scale = Math.max(0.25, Math.min(3, pan.scale * (e.deltaY < 0 ? 1.1 : 0.9)));
     aplikujTransform();
   }, {passive:false});
+  // Oprava "odskoku": pokud uvolnění tažení skončí nad kartou, potlač
+  // vyvolaný klik na tu kartu — jinak appka nechtěně otevírala detail
+  // a odskakovala v tabulce dolů na řádek té osoby.
+  wrap.addEventListener('click', e => {
+    if(tazeniProbehlo){ e.stopPropagation(); e.preventDefault(); tazeniProbehlo = false; }
+  }, true);
 })();
-</script>
-
-</body>
 </script>
 
 </body>
