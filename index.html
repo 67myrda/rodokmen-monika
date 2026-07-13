@@ -52,8 +52,8 @@
   .generace-nadpis{background:#f2ead9; font-weight:bold;}
 
   #stromWrap{
-    width:100%; overflow:auto; border:1px solid var(--linka); border-radius:6px;
-    background:#fffdf8; max-height:640px;
+    width:100%; overflow:hidden; border:1px solid var(--linka); border-radius:6px;
+    background:#fffdf8; height:560px; position:relative;
   }
   .karta-obdelnik{ fill:#fff; stroke-width:2; rx:8; }
   .karta-obdelnik.muz{ stroke:var(--muz); }
@@ -66,6 +66,28 @@
     background:#fbf1e4; border:1px solid #e3cfa0; border-radius:6px;
     padding:10px 14px; font-size:13px; margin-top:12px;
   }
+  tr.zvyrazneno-radek{ background:#fdf0d0 !important; }
+  .karta-obdelnik.zvyrazneno{ stroke:#c9781a; stroke-width:3.5; }
+  .toggle-ikona{ cursor:pointer; user-select:none; }
+  .toggle-ikona circle{ fill:#fff; stroke:var(--akcent); stroke-width:1.5; }
+  .toggle-ikona text{ font-size:11px; fill:var(--akcent); text-anchor:middle; font-family:sans-serif; }
+  .badge-sbaleno{ cursor:pointer; }
+  .badge-sbaleno rect{ fill:#efe7d6; stroke:var(--akcent); stroke-width:1; }
+  .badge-sbaleno text{ font-size:12px; fill:var(--akcent); text-anchor:middle; font-family:sans-serif; }
+  .d-znacka{ cursor:pointer; }
+  .d-znacka circle{ fill:#c9781a; }
+  .d-znacka text{ font-size:10px; fill:#fff; text-anchor:middle; font-family:sans-serif; font-weight:bold; }
+  .lista-ovladani{ margin-bottom:10px; }
+  #dPanel{
+    display:none; background:#fbf1e4; border:1px solid #e3cfa0; border-radius:6px;
+    padding:12px 14px; margin-top:12px; font-size:13px;
+  }
+  #dPanel textarea{
+    width:100%; min-height:60px; font-family:inherit; font-size:13px;
+    border:1px solid var(--linka); border-radius:6px; padding:6px; margin-top:6px;
+  }
+  #stromWrap{ cursor:grab; }
+  #stromWrap.tahnu{ cursor:grabbing; }
 </style>
 </head>
 <body>
@@ -74,14 +96,20 @@
 <div class="podtitul">Datový model, generátor testovacích dat (7.1) a layout engine + SVG vykreslení (7.2)</div>
 
 <div class="panel">
-  <h2>Strom — layout engine (fáze 2)</h2>
+  <h2>Strom — layout engine + interakce (fáze 2+3)</h2>
+  <div class="lista-ovladani">
+    <button onclick="domu()">🏠 Domů</button>
+    <button class="sec" onclick="rozbalitVse()">Rozbalit vše</button>
+    <button class="sec" onclick="sbalitVse()">Sbalit vše</button>
+    <span style="font-size:12px; color:#8a8071; margin-left:8px;">Tažení myší = posun, kolečko = zoom, ▸/▾ na kartě = sbalit větev, oranžové "D" = další vazba</span>
+  </div>
   <div id="stromWrap"></div>
   <div id="prekryvVysledek" style="margin-top:10px; font-size:13px;"></div>
+  <div id="dPanel"></div>
   <div class="limit-box">
-    <b>Známé omezení této fáze:</b> vedlejší větve přes druhé manželství ancestora
-    (např. nevlastní sourozenec kmene z prvního manželství rodiče) se zatím nekreslí —
-    v datech existují (p021 Ludmila, p022 Petr), ale layout je nezahrnuje do žádné větve.
-    Otevřená otázka pro příště: mají se takové větve zobrazovat, a pokud ano, kde v layoutu.
+    <b>Známé omezení:</b> vedlejší větve (druhé manželství ancestora) se dají otevřít přes
+    oranžovou "D" značku na kartě — zatím jen jako náhled + textová poznámka, ne plné
+    přidání osoby do stromu (to přijde s fází 4, detail panel a editace).
   </div>
 </div>
 
@@ -361,7 +389,7 @@ function formatDatum(d){
 function vykresliOsoby(d){
   const radky = Object.entries(d.osoby).map(([id,o])=>{
     const zijici = !o.umrti;
-    return `<tr class="${o.pohlavi==='z'?'zena-rad':'muz-rad'} ${zijici?'':'zemrel'}">
+    return `<tr class="${o.pohlavi==='z'?'zena-rad':'muz-rad'} ${zijici?'':'zemrel'}" data-osoba-id="${id}" style="cursor:pointer" onclick="zvyrazniOsobu('${id}')">
       <td>${id}</td>
       <td>${o.jmeno} ${o.prijmeni}${o.rodnePrijmeni? ' <span style="color:#999">(roz. '+o.rodnePrijmeni+')</span>':''}</td>
       <td>${o.pohlavi==='z'?'žena':'muž'}</td>
@@ -378,7 +406,7 @@ function vykresliOsoby(d){
 function vykresliSvazky(d){
   const radky = d.svazky.map(s=>{
     const jmena = id => d.osoby[id]? d.osoby[id].jmeno+" "+d.osoby[id].prijmeni : id+" ⚠️CHYBÍ";
-    return `<tr>
+    return `<tr data-svazek-id="${s.id}" style="cursor:pointer" onclick="zvyrazniSvazek('${s.id}')">
       <td>${s.id}</td>
       <td>${s.partneri.map(jmena).join(" & ")}</td>
       <td>${s.typ}${s.od? ' od '+s.od:''}</td>
@@ -408,11 +436,11 @@ function stahnoutJSON(){
 }
 
 /* ==========================================================
-   FÁZE 2 — LAYOUT ENGINE (§7.2 plánu)
-   Kritický bod projektu: rozmístění bez překryvů.
-   Ověřeno nezávisle v Node.js (mimo prohlížeč) před zabudováním sem.
-   Pedigree nahoru = binární strom + sourozenecké odbočky (jen 1. generace
-   od kmene). Potomci dolů = klasický strom. Žádné externí knihovny (d3 ne).
+   FÁZE 2+3 — LAYOUT ENGINE + INTERAKCE (§7, body 2 a 3 plánu)
+   Kritický bod projektu (rozmístění bez překryvů) ověřen nezávisle
+   v Node.js před zabudováním sem. Fáze 3 přidává: sbalování/rozbalování
+   větví, pan/zoom, "D"-značku pro vedlejší (dosud nevykreslené) svazky,
+   a křížové zvýraznění mezi tabulkami a stromem.
    ========================================================== */
 
 function najdiRodicovskySvazek(d, personId){
@@ -422,22 +450,42 @@ function najdiSvazkyJakoPartner(d, personId){
   return d.svazky.filter(s => s.partneri.includes(personId));
 }
 
+// --- STAV (fáze 3): sbalené větve, poznámky k D-značkám, vybraná osoba, pohled ---
+let sbalenoNahoru = new Set();
+let sbalenoDolu = new Set();
+let dPoznamky = {};
+let vybranaOsobaId = null;
+let pan = {x:0, y:0, scale:1};
+let panInicializovan = false;
+let posledniBBox = null;
+
 // --- ASCEND (předci) ---
 function buildAncestorNode(d, personId, depth){
   if(!personId) return null;
-  const node = {id: personId, depth, parents:[null,null], siblings:[]};
+  const node = {id: personId, depth, parents:[null,null], siblings:[], extraUnions:[]};
   const pu = najdiRodicovskySvazek(d, personId);
   if(pu){
-    node.parents = [pu.partneri[0]||null, pu.partneri[1]||null].map(pid => buildAncestorNode(d, pid, depth+1));
+    node.parents = [pu.partneri[0]||null, pu.partneri[1]||null].map(pid => {
+      if(!pid) return null;
+      const rodicNode = buildAncestorNode(d, pid, depth+1);
+      // vedlejší svazky rodiče (jiné než ten, co vede k naší osobě) — pro "D" značku
+      rodicNode.extraUnions = najdiSvazkyJakoPartner(d, pid).filter(u => u.id !== pu.id);
+      return rodicNode;
+    });
     if(depth === 1){
       node.siblings = pu.deti.filter(id => id !== personId);
     }
   }
   return node;
 }
+function pocetVsechOsobAscend(node){
+  if(!node) return 0;
+  return 1 + node.siblings.length + pocetVsechOsobAscend(node.parents[0]) + pocetVsechOsobAscend(node.parents[1]);
+}
 function sirkaAscend(node){
   if(!node) return 0;
   const rowWidth = 1 + node.siblings.length;
+  if(sbalenoNahoru.has(node.id)){ node.width = rowWidth; return node.width; }
   const wA = sirkaAscend(node.parents[0]);
   const wB = sirkaAscend(node.parents[1]);
   node.width = Math.max(rowWidth, wA + wB, 1);
@@ -450,6 +498,7 @@ function priradXAscend(node, xLeft){
   const rowLeft = xLeft + (node.width - row.length)/2;
   node.rowPositions = row.map((id,i) => ({id, x: rowLeft + i + 0.5}));
   node.centerX = xLeft + node.width/2;
+  if(sbalenoNahoru.has(node.id)) return;
   const wA = node.parents[0] ? node.parents[0].width : 0;
   const wB = node.parents[1] ? node.parents[1].width : 0;
   const parentsLeft = xLeft + (node.width - (wA+wB))/2;
@@ -459,18 +508,22 @@ function priradXAscend(node, xLeft){
 
 // --- DESCEND (potomci) ---
 function buildDescendNode(d, personId, depth){
-  const node = {id: personId, depth, spouseId:null, children:[]};
+  const node = {id: personId, depth, spouseId:null, children:[], extraUnions:[]};
   const uniony = najdiSvazkyJakoPartner(d, personId);
   if(uniony.length){
     const u = uniony[0];
     node.spouseId = u.partneri.find(p => p !== personId) || null;
     node.children = u.deti.map(cid => buildDescendNode(d, cid, depth+1));
+    node.extraUnions = uniony.slice(1);
   }
   return node;
 }
+function pocetVsechOsobDescend(node){
+  return 1 + (node.spouseId?1:0) + node.children.reduce((s,c)=>s+pocetVsechOsobDescend(c),0);
+}
 function sirkaDescend(node){
   const ownWidth = node.spouseId ? 2 : 1;
-  if(!node.children.length){ node.width = ownWidth; return node.width; }
+  if(sbalenoDolu.has(node.id) || !node.children.length){ node.width = ownWidth; return node.width; }
   const childrenWidth = node.children.reduce((s,c) => s + sirkaDescend(c), 0);
   node.width = Math.max(ownWidth, childrenWidth);
   return node.width;
@@ -478,6 +531,7 @@ function sirkaDescend(node){
 function priradXDescend(node, xLeft){
   node.left = xLeft;
   node.centerX = xLeft + node.width/2;
+  if(sbalenoDolu.has(node.id)) return;
   let cursor = xLeft;
   node.children.forEach(c => { priradXDescend(c, cursor); cursor += c.width; });
 }
@@ -487,6 +541,8 @@ function postavLayout(d){
   const [idA, idB] = rootUnion.partneri;
   const ascendA = buildAncestorNode(d, idA, 0);
   const ascendB = buildAncestorNode(d, idB, 0);
+  ascendA.extraUnions = najdiSvazkyJakoPartner(d, idA).filter(u => u.id !== rootUnion.id);
+  ascendB.extraUnions = najdiSvazkyJakoPartner(d, idB).filter(u => u.id !== rootUnion.id);
   sirkaAscend(ascendA); sirkaAscend(ascendB);
   priradXAscend(ascendA, 0);
   priradXAscend(ascendB, ascendA.width);
@@ -501,13 +557,29 @@ function postavLayout(d){
   return {ascendA, ascendB, descendNodes, rootUnion, idA, idB};
 }
 
-/* ---------- převod do pixelů + sběr karet a spojnic ---------- */
+/* ---------- převod do pixelů + sběr karet, spojnic a badge sbalených větví ---------- */
 const UNIT_W = 190, ROW_H = 130, CARD_W = 160, CARD_H = 54;
 
-function sberAscend(node, karty, cary){
+function sberAscend(node, karty, cary, badge){
   if(!node) return;
   const y = -node.depth*ROW_H;
-  node.rowPositions.forEach(rp => karty.push({id: rp.id, x: rp.x*UNIT_W, y}));
+  node.rowPositions.forEach(rp => {
+    karty.push({
+      id: rp.id, x: rp.x*UNIT_W, y,
+      maExpand: rp.id===node.id && (!!node.parents[0] || !!node.parents[1]),
+      extraUnions: rp.id===node.id ? node.extraUnions : []
+    });
+  });
+  if(sbalenoNahoru.has(node.id)){
+    const skryto = pocetVsechOsobAscend(node.parents[0]) + pocetVsechOsobAscend(node.parents[1]);
+    if(skryto>0){
+      const parentY = -(node.depth+1)*ROW_H;
+      const nodeMainX = node.rowPositions.find(rp=>rp.id===node.id).x*UNIT_W;
+      badge.push({typ:'nahoru', id:node.id, x:nodeMainX, y:parentY, pocet:skryto});
+      cary.push({typ:'vert', x1:nodeMainX, y1:y, x2:nodeMainX, y2:parentY});
+    }
+    return;
+  }
   const wA = node.parents[0], wB = node.parents[1];
   if(wA || wB){
     const parentY = -(node.depth+1)*ROW_H;
@@ -518,22 +590,32 @@ function sberAscend(node, karty, cary){
     const nodeMainX = node.rowPositions.find(rp=>rp.id===node.id).x*UNIT_W;
     cary.push({typ:'vert', x1:nodeMainX, y1:y, x2:midParentX, y2:parentY});
   }
-  sberAscend(wA, karty, cary);
-  sberAscend(wB, karty, cary);
+  sberAscend(wA, karty, cary, badge);
+  sberAscend(wB, karty, cary, badge);
 }
-function sberDescend(node, karty, cary, rodicUnionX, rodicUnionY){
+function sberDescend(node, karty, cary, badge, rodicUnionX, rodicUnionY){
   const x = node.centerX*UNIT_W - (node.spouseId ? UNIT_W/2 : 0);
   const y = node.depth*ROW_H;
-  karty.push({id: node.id, x, y});
+  karty.push({id: node.id, x, y, maExpand: node.children.length>0, extraUnions: node.extraUnions});
   let vlastniUnionX = x;
   if(node.spouseId){
     const xSpouse = x+UNIT_W;
-    karty.push({id: node.spouseId, x: xSpouse, y});
+    karty.push({id: node.spouseId, x: xSpouse, y, maExpand:false, extraUnions:[]});
     cary.push({typ:'union', x1:x, x2:xSpouse, y});
     vlastniUnionX = (x+xSpouse)/2;
   }
   if(rodicUnionX!=null) cary.push({typ:'vert', x1:rodicUnionX, y1:rodicUnionY, x2:x, y2:y});
-  node.children.forEach(c => sberDescend(c, karty, cary, vlastniUnionX, y));
+
+  if(sbalenoDolu.has(node.id)){
+    const skryto = node.children.reduce((s,c)=>s+pocetVsechOsobDescend(c),0);
+    if(skryto>0){
+      const childY = y+ROW_H;
+      badge.push({typ:'dolu', id:node.id, x:vlastniUnionX, y:childY, pocet:skryto});
+      cary.push({typ:'vert', x1:vlastniUnionX, y1:y, x2:vlastniUnionX, y2:childY});
+    }
+    return;
+  }
+  node.children.forEach(c => sberDescend(c, karty, cary, badge, vlastniUnionX, y));
 }
 
 function zkontrolujPrekryvy(karty){
@@ -548,38 +630,40 @@ function zkontrolujPrekryvy(karty){
   return kolize;
 }
 
+/* ---------- vykreslení + pan/zoom ---------- */
 function vykresliStrom(d){
   const layout = postavLayout(d);
-  const karty = [], cary = [];
-  sberAscend(layout.ascendA, karty, cary);
-  sberAscend(layout.ascendB, karty, cary);
-  // svazek kořenového páru
+  const karty = [], cary = [], badge = [];
+  sberAscend(layout.ascendA, karty, cary, badge);
+  sberAscend(layout.ascendB, karty, cary, badge);
   const xA0 = layout.ascendA.rowPositions.find(rp=>rp.id===layout.idA).x*UNIT_W;
   const xB0 = layout.ascendB.rowPositions.find(rp=>rp.id===layout.idB).x*UNIT_W;
   cary.push({typ:'union', x1:xA0, x2:xB0, y:0});
   const rootMidX = (xA0+xB0)/2;
-  layout.descendNodes.forEach(n => sberDescend(n, karty, cary, rootMidX, 0));
+  layout.descendNodes.forEach(n => sberDescend(n, karty, cary, badge, rootMidX, 0));
 
-  // kontrola překryvů — přímo v appce, ne jen v Node testu
   const kolize = zkontrolujPrekryvy(karty);
-  document.getElementById("prekryvVysledek").innerHTML = kolize.length===0
+  let hlaska = kolize.length===0
     ? "✅ Kontrola překryvů: 0 kolizí na "+karty.length+" vykreslených kartách."
     : "⚠️ Nalezeno "+kolize.length+" překryvů: "+kolize.join(", ");
+  if(vybranaOsobaId && !karty.some(k=>k.id===vybranaOsobaId)){
+    hlaska += " · ℹ️ Vybraná osoba je momentálně sbalená ve větvi — rozbal ji tlačítkem na kartě nebo tlačítkem Rozbalit vše.";
+  }
+  document.getElementById("prekryvVysledek").innerHTML = hlaska;
 
-  // rozsah pro viewBox
-  const xs = karty.map(k=>k.x), ys = karty.map(k=>k.y);
-  const minX = Math.min(...xs)-CARD_W, maxX = Math.max(...xs)+CARD_W;
-  const minY = Math.min(...ys)-CARD_H, maxY = Math.max(...ys)+CARD_H;
-  const w = maxX-minX, h = maxY-minY;
+  const xsAll = karty.map(k=>k.x).concat(badge.map(b=>b.x), [0]);
+  const ysAll = karty.map(k=>k.y).concat(badge.map(b=>b.y), [0]);
+  const minX = Math.min(...xsAll)-CARD_W, maxX = Math.max(...xsAll)+CARD_W;
+  const minY = Math.min(...ysAll)-CARD_H, maxY = Math.max(...ysAll)+CARD_H;
+  posledniBBox = {minX, minY, w:maxX-minX, h:maxY-minY};
 
-  let svg = `<svg width="${w}" height="${h}" viewBox="${minX} ${minY} ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
-
+  let vnitrek = "";
   cary.forEach(c=>{
     if(c.typ==='union'){
-      svg += `<line class="spojnice" x1="${c.x1}" y1="${c.y}" x2="${c.x2}" y2="${c.y}"/>`;
+      vnitrek += `<line class="spojnice" x1="${c.x1}" y1="${c.y}" x2="${c.x2}" y2="${c.y}"/>`;
     } else {
       const midY = (c.y1+c.y2)/2;
-      svg += `<path class="spojnice" d="M${c.x1},${c.y1} L${c.x1},${midY} L${c.x2},${midY} L${c.x2},${c.y2}"/>`;
+      vnitrek += `<path class="spojnice" d="M${c.x1},${c.y1} L${c.x1},${midY} L${c.x2},${midY} L${c.x2},${c.y2}"/>`;
     }
   });
 
@@ -587,19 +671,135 @@ function vykresliStrom(d){
     const o = d.osoby[k.id];
     if(!o) return;
     const zemrely = !!o.umrti;
-    const roky = "*"+formatDatum(o.narozeni)+(o.umrti? " †"+formatDatum(o.umrti) : (zemrely? "":""));
-    svg += `<g transform="translate(${k.x - CARD_W/2}, ${k.y - CARD_H/2})">
-      <rect class="karta-obdelnik ${o.pohlavi==='z'?'zena':'muz'} ${zemrely?'zemrely':''}" width="${CARD_W}" height="${CARD_H}" rx="8"/>
-      <text class="karta-jmeno" x="10" y="22">${o.jmeno} ${o.prijmeni}</text>
-      <text class="karta-roky" x="10" y="40">${roky}</text>
+    const roky = "*"+formatDatum(o.narozeni)+(o.umrti? " †"+formatDatum(o.umrti) : "");
+    const vybrano = k.id===vybranaOsobaId;
+    vnitrek += `<g data-osoba="${k.id}" transform="translate(${k.x - CARD_W/2}, ${k.y - CARD_H/2})">
+      <rect class="karta-obdelnik ${o.pohlavi==='z'?'zena':'muz'} ${zemrely?'zemrely':''} ${vybrano?'zvyrazneno':''}" width="${CARD_W}" height="${CARD_H}" rx="8" style="cursor:pointer" onclick="zvyrazniZeStromu('${k.id}')"/>
+      <text class="karta-jmeno" x="10" y="22" style="pointer-events:none">${o.jmeno} ${o.prijmeni}</text>
+      <text class="karta-roky" x="10" y="40" style="pointer-events:none">${roky}</text>`;
+    if(k.maExpand){
+      const iy = k.y<=0 ? -12 : CARD_H+12;
+      const fn = k.y<=0 ? 'toggleNahoru' : 'toggleDolu';
+      vnitrek += `<g class="toggle-ikona" transform="translate(${CARD_W/2},${iy})" onclick="event.stopPropagation(); ${fn}('${k.id}')">
+        <circle r="9"/><text y="4">−</text>
+      </g>`;
+    }
+    if(k.extraUnions && k.extraUnions.length>0){
+      vnitrek += `<g class="d-znacka" transform="translate(${CARD_W-12},4)" onclick="event.stopPropagation(); otevriDPanel('${k.id}')">
+        <circle r="9"/><text y="4">D</text>
+      </g>`;
+    }
+    vnitrek += `</g>`;
+  });
+
+  badge.forEach(b=>{
+    const fn = b.typ==='nahoru' ? 'toggleNahoru' : 'toggleDolu';
+    vnitrek += `<g class="badge-sbaleno" transform="translate(${b.x-30},${b.y-14})" onclick="${fn}('${b.id}')">
+      <rect width="60" height="28" rx="14"/><text x="30" y="18">+${b.pocet}</text>
     </g>`;
   });
 
-  svg += `</svg>`;
-  document.getElementById("stromWrap").innerHTML = svg;
+  document.getElementById("stromWrap").innerHTML =
+    `<svg id="stromSvg" width="1000" height="560" xmlns="http://www.w3.org/2000/svg">
+      <g id="viewportG">${vnitrek}</g>
+    </svg>`;
+
+  if(!panInicializovan){ domu(); panInicializovan = true; }
+  else { aplikujTransform(); }
+}
+
+function aplikujTransform(){
+  const g = document.getElementById('viewportG');
+  if(g) g.setAttribute('transform', `translate(${pan.x},${pan.y}) scale(${pan.scale})`);
+}
+function domu(){
+  if(!posledniBBox) return;
+  const {minX,minY,w,h} = posledniBBox;
+  pan.scale = Math.max(0.2, Math.min(3, Math.min(1000/w, 560/h) * 0.92));
+  pan.x = 500 - pan.scale*(minX + w/2);
+  pan.y = 280 - pan.scale*(minY + h/2);
+  aplikujTransform();
+}
+function toggleNahoru(id){ sbalenoNahoru.has(id) ? sbalenoNahoru.delete(id) : sbalenoNahoru.add(id); vykresliStrom(data); }
+function toggleDolu(id){ sbalenoDolu.has(id) ? sbalenoDolu.delete(id) : sbalenoDolu.add(id); vykresliStrom(data); }
+function rozbalitVse(){ sbalenoNahoru.clear(); sbalenoDolu.clear(); vykresliStrom(data); }
+function sbalitVse(){
+  const ru = data.svazky.find(s=>s.id===data.meta.koren);
+  sbalenoNahoru = new Set(ru.partneri);
+  sbalenoDolu = new Set(ru.deti);
+  vykresliStrom(data);
+}
+
+/* ---------- "D" značka — vedlejší svazky (fáze 3, minimální náhled) ---------- */
+function otevriDPanel(personId){
+  const o = data.osoby[personId];
+  const unie = najdiSvazkyJakoPartner(data, personId);
+  let html = `<b>Další vazby: ${o.jmeno} ${o.prijmeni}</b><br><br>`;
+  unie.forEach(u=>{
+    const partnerId = u.partneri.find(p=>p!==personId);
+    const partner = partnerId ? data.osoby[partnerId] : null;
+    const detiJm = u.deti.map(cid => data.osoby[cid]? data.osoby[cid].jmeno+" "+data.osoby[cid].prijmeni : cid).join(", ") || "bez dětí";
+    html += `<div style="margin-bottom:6px;">• ${u.typ}${u.od? ' od '+u.od:''} s <b>${partner? partner.jmeno+" "+partner.prijmeni : '(neznámý partner)'}</b> — děti: ${detiJm}</div>`;
+  });
+  html += `<label style="font-size:12px; color:#8a8071;">Poznámka (zatím jen v paměti prohlížeče — ukládání do souboru přijde ve fázi 6):</label>
+    <textarea oninput="dPoznamky['${personId}']=this.value">${dPoznamky[personId]||''}</textarea>
+    <div style="margin-top:8px;"><button class="sec" onclick="document.getElementById('dPanel').style.display='none'">Zavřít</button></div>`;
+  const panel = document.getElementById('dPanel');
+  panel.innerHTML = html;
+  panel.style.display = 'block';
+}
+
+/* ---------- křížové zvýraznění tabulky ↔ strom ---------- */
+function oznacRadekOsoby(id){
+  document.querySelectorAll('tr[data-osoba-id]').forEach(tr =>
+    tr.classList.toggle('zvyrazneno-radek', tr.dataset.osobaId===id));
+}
+function zvyrazniOsobu(id){
+  vybranaOsobaId = id;
+  oznacRadekOsoby(id);
+  vykresliStrom(data);
+}
+function zvyrazniSvazek(id){
+  document.querySelectorAll('tr[data-svazek-id]').forEach(tr =>
+    tr.classList.toggle('zvyrazneno-radek', tr.dataset.svazekId===id));
+  const s = data.svazky.find(x=>x.id===id);
+  if(s && s.partneri[0]) zvyrazniOsobu(s.partneri[0]);
+}
+function zvyrazniZeStromu(id){
+  vybranaOsobaId = id;
+  oznacRadekOsoby(id);
+  const tr = document.querySelector('tr[data-osoba-id="'+id+'"]');
+  if(tr && tr.scrollIntoView) tr.scrollIntoView({block:'center', behavior:'smooth'});
+  vykresliStrom(data);
 }
 
 vykresliStrom(data);
+
+/* ---------- pan (tažení myší) a zoom (kolečko) ---------- */
+(function(){
+  const wrap = document.getElementById('stromWrap');
+  let tahnu = false, posledniX = 0, posledniY = 0;
+  wrap.addEventListener('mousedown', e => {
+    tahnu = true; posledniX = e.clientX; posledniY = e.clientY;
+    wrap.classList.add('tahnu');
+  });
+  window.addEventListener('mouseup', () => { tahnu = false; wrap.classList.remove('tahnu'); });
+  window.addEventListener('mousemove', e => {
+    if(!tahnu) return;
+    pan.x += (e.clientX - posledniX);
+    pan.y += (e.clientY - posledniY);
+    posledniX = e.clientX; posledniY = e.clientY;
+    aplikujTransform();
+  });
+  wrap.addEventListener('wheel', e => {
+    e.preventDefault();
+    pan.scale = Math.max(0.25, Math.min(3, pan.scale * (e.deltaY < 0 ? 1.1 : 0.9)));
+    aplikujTransform();
+  }, {passive:false});
+})();
+</script>
+
+</body>
 </script>
 
 </body>
