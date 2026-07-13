@@ -579,7 +579,7 @@ function postavLayout(d){
 }
 
 /* ---------- převod do pixelů + sběr karet, spojnic a badge sbalených větví ---------- */
-const UNIT_W = 190, ROW_H = 130, CARD_W = 160, CARD_H = 54;
+const UNIT_W = 190, ROW_H = 130, CARD_W = 174, CARD_H = 54;
 
 function sberAscend(node, karty, cary, badge){
   if(!node) return;
@@ -637,6 +637,36 @@ function sberDescend(node, karty, cary, badge, rodicUnionX, rodicUnionY){
     return;
   }
   node.children.forEach(c => sberDescend(c, karty, cary, badge, vlastniUnionX, y));
+}
+
+/* ---------- ořez dlouhých jmen, aby nepřetékala z karty (oprava 13.7.2026) ----------
+   Měří se skutečnou šířkou písma přes canvas (přesné); pokud canvas není
+   k dispozici (např. test mimo prohlížeč), použije se odhad podle počtu
+   znaků — o něco méně přesné, ale funkčně stejná logika (zkracuj, dokud
+   se nevejde). Testováno v Node.js přes tento odhadový fallback. */
+function zmerSirkuTextu(text, fontSize){
+  try{
+    if(typeof document!=='undefined' && document.createElement){
+      if(!zmerSirkuTextu._ctx){
+        const c = document.createElement('canvas');
+        if(c && c.getContext) zmerSirkuTextu._ctx = c.getContext('2d');
+      }
+      if(zmerSirkuTextu._ctx && zmerSirkuTextu._ctx.measureText){
+        zmerSirkuTextu._ctx.font = fontSize+'px Georgia, serif';
+        return zmerSirkuTextu._ctx.measureText(text).width;
+      }
+    }
+  } catch(e){ /* padá do odhadu níže */ }
+  return text.length * fontSize * 0.52; // odhad pro serif písmo
+}
+function zkratitText(text, maxSirkaPx, fontSize){
+  if(!text) return '';
+  if(zmerSirkuTextu(text, fontSize) <= maxSirkaPx) return text;
+  let zkraceno = text;
+  while(zkraceno.length>1 && zmerSirkuTextu(zkraceno+'…', fontSize) > maxSirkaPx){
+    zkraceno = zkraceno.slice(0, -1);
+  }
+  return zkraceno + '…';
 }
 
 function zkontrolujPrekryvy(karty){
@@ -703,8 +733,8 @@ function vykresliStrom(d){
       vnitrek += `<circle cx="28" cy="27" r="18" fill="${o.pohlavi==='z'?'var(--zena)':'var(--muz)'}" opacity="0.22" style="pointer-events:none"/>
         <text x="28" y="32" text-anchor="middle" font-size="14" font-family="Georgia,serif" fill="var(--tmava)" style="pointer-events:none">${escHtml((o.jmeno||'?').charAt(0))}</text>`;
     }
-    vnitrek += `<text class="karta-jmeno" x="52" y="22" style="pointer-events:none">${escHtml(o.jmeno)} ${escHtml(o.prijmeni)}</text>
-      <text class="karta-roky" x="52" y="40" style="pointer-events:none">${roky}</text>`;
+    vnitrek += `<title>${escHtml(o.jmeno+' '+o.prijmeni)}, ${escHtml(roky)}</title><text class="karta-jmeno" x="52" y="22" style="pointer-events:none">${escHtml(zkratitText(o.jmeno+' '+o.prijmeni, CARD_W-52-10, 13))}</text>
+      <text class="karta-roky" x="52" y="40" style="pointer-events:none">${escHtml(zkratitText(roky, CARD_W-52-10, 11))}</text>`;
     if(k.maExpand){
       const iy = k.y<=0 ? -12 : CARD_H+12;
       const fn = k.y<=0 ? 'toggleNahoru' : 'toggleDolu';
