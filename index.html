@@ -9,6 +9,14 @@
      s nízkým rozlišením je aktuální --tmava/--akcent na --papir podle zpětné vazby
      hůř čitelné, než by mělo být. Otestovat i na malém/starším notebooku, ne jen
      na Retina displeji. Zmínil Myrda 13.7.2026. */
+  /* TODO (budoucí aktualizace, dle Myrdy 13.7.2026): jméno na kartě zobrazit
+     na dvou pevných řádcích — 1. řádek jméno, 2. řádek příjmení — místo
+     jednořádkového zkracování s "…". Estetičtější, ale vyžaduje přepočet
+     výšky karty (CARD_H) a všech navazujících Y-pozic v layoutu, proto
+     záměrně odloženo, aby nešlo o rychlou nezajištěnou úpravu. */
+  /* TODO (Myrda 13.7.2026): "🗑️ Smazat osobu" v detail panelu — chybí.
+     Patří logicky až za undo historii (fáze 6), protože smazání osoby je
+     nevratná operace bez ní. Naplánováno jako první věc hned po fázi 6. */
   :root{
     --papir:#faf6ee; --tmava:#3a3128; --linka:#c9bfa8; --akcent:#8a6d4b;
     --muz:#5c7a99; --zena:#a8677c;
@@ -114,8 +122,25 @@
 </head>
 <body>
 
-<h1>🌳 Rodokmen — Fáze 1–5</h1>
-<div class="podtitul">Datový model, layout engine, sbalování/pan-zoom, detail panel s editací a fotky (§7, body 1–5)</div>
+<h1>🌳 Rodokmen — Fáze 1–6</h1>
+<div class="podtitul">Datový model, layout engine, sbalování/pan-zoom, detail panel, fotky, soubor + undo (§7, body 1–6)</div>
+
+<div class="panel">
+  <h2>Soubor</h2>
+  <div class="lista-ovladani">
+    <button onclick="otevritSoubor()">📂 Otevřít</button>
+    <button onclick="ulozitSoubor(false)">💾 Uložit (Ctrl+S)</button>
+    <button class="sec" onclick="ulozitSoubor(true)">💾 Uložit jako…</button>
+    <button class="sec" onclick="vratitZmenu()">↶ Zpět (Ctrl+Z)</button>
+    <button class="sec" onclick="znovuZmenu()">↷ Znovu</button>
+    <span id="indikatorUlozeni" style="margin-left:10px; font-size:13px; font-weight:bold;">✓ uloženo</span>
+    <input type="file" id="vstupSouboru" accept="application/json,.json" style="display:none" onchange="zpracujVstupSouboru(this)">
+  </div>
+  <div style="font-size:12px; color:#8a8071;">
+    Soubor si po uložení drž ve své složce Google Drive (desktopová synchronizace) —
+    o zálohu a dostupnost se pak stará Google, appka sama s Drive nekomunikuje.
+  </div>
+</div>
 
 <div class="panel">
   <h2>Strom — layout engine + interakce (fáze 2+3+4)</h2>
@@ -314,7 +339,7 @@ function generujTestovaciData(){
   };
 }
 
-const data = generujTestovaciData();
+let data = generujTestovaciData();
 
 /* ==========================================================
    KONTROLA INTEGRITY — validace grafu proti anomáliím
@@ -817,7 +842,161 @@ function prekresliVse(){
   vykresliStatistiky(data);
   vykresliKontroly(data);
   vykresliStrom(data);
+  oznacNeulozeno();
+  autosaveDoLocalStorage();
 }
+
+/* ==========================================================
+   FÁZE 6 — SOUBOR, AUTOSAVE, UNDO (§4, §5, §7.6 plánu)
+   File System Access API primárně, fallback download/upload pro
+   prohlížeče bez podpory. Undo/redo jako zásobník JSON snímků (~20
+   kroků) — jednoduché, spolehlivé, žádné riziko částečného stavu.
+   ========================================================== */
+
+// ---------- UNDO / REDO ----------
+let historieUndo = [];
+let historieRedo = [];
+const MAX_UNDO = 20;
+
+function ulozUndoBod(){
+  historieUndo.push(JSON.stringify(data));
+  if(historieUndo.length > MAX_UNDO) historieUndo.shift();
+  historieRedo = [];
+}
+function vratitZmenu(){
+  if(historieUndo.length===0) return;
+  historieRedo.push(JSON.stringify(data));
+  data = JSON.parse(historieUndo.pop());
+  prekresliVse();
+  zavriDetail();
+}
+function znovuZmenu(){
+  if(historieRedo.length===0) return;
+  historieUndo.push(JSON.stringify(data));
+  data = JSON.parse(historieRedo.pop());
+  prekresliVse();
+  zavriDetail();
+}
+
+// ---------- INDIKÁTOR ULOŽENÍ ----------
+let neulozenoOdPosledniUlozeni = false;
+function oznacNeulozeno(){
+  neulozenoOdPosledniUlozeni = true;
+  aktualizujIndikatorUlozeni();
+}
+function oznacUlozeno(){
+  neulozenoOdPosledniUlozeni = false;
+  aktualizujIndikatorUlozeni();
+}
+function aktualizujIndikatorUlozeni(){
+  const el = document.getElementById('indikatorUlozeni');
+  if(!el) return;
+  el.textContent = neulozenoOdPosledniUlozeni ? '● neuloženo' : '✓ uloženo';
+  el.style.color = neulozenoOdPosledniUlozeni ? '#a8552f' : '#3d7a5c';
+}
+
+// ---------- AUTOSAVE DO localStorage (havarijní kopie) ----------
+const LS_KLIC = 'rodokmen_autosave_v1';
+function autosaveDoLocalStorage(){
+  try{
+    localStorage.setItem(LS_KLIC, JSON.stringify({data, ulozenoV: new Date().toISOString()}));
+  } catch(e){ console.warn('Autosave do localStorage selhal:', e); }
+}
+function zkontrolujObnovuPriStartu(){
+  try{
+    const ulozeno = localStorage.getItem(LS_KLIC);
+    if(!ulozeno) return;
+    const parsed = JSON.parse(ulozeno);
+    if(!parsed || !parsed.data) return;
+    const datumText = new Date(parsed.ulozenoV).toLocaleString('cs-CZ');
+    const chce = confirm('Našel jsem rozpracovanou verzi rodokmenu z předchozí návštěvy (uloženo '+datumText+'). Obnovit ji místo výchozích testovacích dat?');
+    if(chce){
+      data = parsed.data;
+      historieUndo = []; historieRedo = [];
+      prekresliVse();
+      oznacNeulozeno(); // je to obnovená rozpracovaná verze, ne čerstvě uložený soubor
+    }
+  } catch(e){ console.warn('Obnova z localStorage selhala:', e); }
+}
+
+// ---------- OTEVŘÍT / ULOŽIT ----------
+function nacistData(noveData){
+  data = noveData;
+  historieUndo = []; historieRedo = [];
+  vybraneOsoby = new Set();
+  vybranySvazekId = null;
+  panInicializovan = false;
+  zavriDetail();
+  prekresliVse();
+  oznacUlozeno();
+}
+async function otevritSoubor(){
+  if(neulozenoOdPosledniUlozeni && !confirm('Máš neuložené změny. Opravdu chceš otevřít jiný soubor a zahodit je?')) return;
+  if(typeof window!=='undefined' && 'showOpenFilePicker' in window){
+    try{
+      const [handle] = await window.showOpenFilePicker({
+        types: [{description:'Rodokmen JSON', accept:{'application/json':['.json']}}]
+      });
+      aktualniFileHandle = handle;
+      const soubor = await handle.getFile();
+      nacistData(JSON.parse(await soubor.text()));
+    } catch(e){
+      if(e.name!=='AbortError') alert('Otevření souboru se nepovedlo: '+e.message);
+    }
+  } else {
+    document.getElementById('vstupSouboru').click();
+  }
+}
+function zpracujVstupSouboru(input){
+  const soubor = input.files[0];
+  if(!soubor) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{ nacistData(JSON.parse(e.target.result)); }
+    catch(err){ alert('Soubor se nepodařilo přečíst jako platný JSON rodokmenu.'); }
+  };
+  reader.readAsText(soubor);
+  input.value = '';
+}
+
+let aktualniFileHandle = null;
+async function ulozitSoubor(jakoNovy){
+  const obsah = JSON.stringify(data, null, 2);
+  const navrzeneJmeno = (data.meta.nazev||'rodokmen').replace(/[^a-z0-9\-_ ]/gi,'_') + '.json';
+  if(typeof window!=='undefined' && 'showSaveFilePicker' in window){
+    try{
+      if(!aktualniFileHandle || jakoNovy){
+        aktualniFileHandle = await window.showSaveFilePicker({
+          suggestedName: navrzeneJmeno,
+          types: [{description:'Rodokmen JSON', accept:{'application/json':['.json']}}]
+        });
+      }
+      const writable = await aktualniFileHandle.createWritable();
+      await writable.write(obsah);
+      await writable.close();
+      oznacUlozeno();
+    } catch(e){
+      if(e.name!=='AbortError') alert('Uložení se nepovedlo: '+e.message);
+    }
+  } else {
+    const blob = new Blob([obsah], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = navrzeneJmeno;
+    a.click();
+    oznacUlozeno();
+  }
+}
+
+// ---------- klávesové zkratky ----------
+window.addEventListener('keydown', e=>{
+  const ctrl = e.ctrlKey || e.metaKey;
+  if(!ctrl) return;
+  const k = e.key.toLowerCase();
+  if(k==='z' && !e.shiftKey){ e.preventDefault(); vratitZmenu(); }
+  else if((k==='z' && e.shiftKey) || k==='y'){ e.preventDefault(); znovuZmenu(); }
+  else if(k==='s'){ e.preventDefault(); ulozitSoubor(false); }
+});
 
 /* ==========================================================
    FÁZE 5 — FOTKY (§3, §5 plánu)
@@ -836,6 +1015,7 @@ function vypocitejRozmeryFota(sirka, vyska, maxStrana){
 
 function zpracujFoto(id, file){
   if(!file || !file.type || !file.type.startsWith('image/')){ alert('Vyber prosím obrázek.'); return; }
+  ulozUndoBod();
   const reader = new FileReader();
   reader.onload = function(e){
     const img = new Image();
@@ -854,6 +1034,7 @@ function zpracujFoto(id, file){
   reader.readAsDataURL(file);
 }
 function odstranitFoto(id){
+  ulozUndoBod();
   data.osoby[id].foto = null;
   prekresliVse();
   vykresliDetail(id);
@@ -1032,6 +1213,7 @@ function ulozitNovouOsobu(id, typ, svazekId){
   const pohlavi = document.getElementById('npf_pohlavi').value;
   const rok = document.getElementById('npf_rok').value.trim();
   if(!jmeno || !prijmeni){ alert('Vyplň prosím jméno i příjmení.'); return; }
+  ulozUndoBod();
 
   const novyId = novaOsobaId();
   data.osoby[novyId] = {
@@ -1067,6 +1249,7 @@ function ulozitNovouOsobu(id, typ, svazekId){
 }
 
 function ulozitDetail(id){
+  ulozUndoBod();
   const o = data.osoby[id];
   o.jmeno = document.getElementById('pf_jmeno').value.trim();
   o.prijmeni = document.getElementById('pf_prijmeni').value.trim();
@@ -1128,6 +1311,8 @@ function zvyrazniZeStromu(id){
 }
 
 vykresliStrom(data);
+oznacUlozeno();
+zkontrolujObnovuPriStartu();
 
 /* ---------- pan (tažení myší) a zoom (kolečko) ---------- */
 (function(){
