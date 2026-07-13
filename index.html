@@ -3,29 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rodokmen — fáze 1: datový model</title>
+<title>KoŘeny rodu — M68</title>
 <style>
-  /* TODO FÁZE 7 (vizuální ladění): zvýšit kontrast písma — na starším displeji
-     s nízkým rozlišením je aktuální --tmava/--akcent na --papir podle zpětné vazby
-     hůř čitelné, než by mělo být. Otestovat i na malém/starším notebooku, ne jen
-     na Retina displeji. Zmínil Myrda 13.7.2026. */
+  /* VYŘEŠENO fáze 7 (13.7.2026): kontrast písma zvýšen (tmavší --tmava/--akcent,
+     tmavší barva let na kartě) podle zpětné vazby Myrdy ze staršího notebooku. */
   /* TODO (budoucí aktualizace, dle Myrdy 13.7.2026): jméno na kartě zobrazit
      na dvou pevných řádcích — 1. řádek jméno, 2. řádek příjmení — místo
      jednořádkového zkracování s "…". Estetičtější, ale vyžaduje přepočet
      výšky karty (CARD_H) a všech navazujících Y-pozic v layoutu, proto
      záměrně odloženo, aby nešlo o rychlou nezajištěnou úpravu. */
-  /* TODO (Myrda 13.7.2026): "🗑️ Smazat osobu" v detail panelu — chybí.
-     Patří logicky až za undo historii (fáze 6), protože smazání osoby je
-     nevratná operace bez ní. Naplánováno jako první věc hned po fázi 6. */
+  /* VYŘEŠENO fáze 7 (13.7.2026): "🗑️ Smazat osobu" doplněno do detail panelu,
+     napojeno na undo historii a chráněno proti smazání kořenového páru. */
   :root{
-    --papir:#faf6ee; --tmava:#3a3128; --linka:#c9bfa8; --akcent:#8a6d4b;
-    --muz:#5c7a99; --zena:#a8677c;
+    --papir:#faf6ee; --tmava:#2e2620; --linka:#c9bfa8; --akcent:#7a5d3d;
+    --muz:#5c7a99; --zena:#a8677c; --bronz:#A16F44; --bronz-tmavy:#7d5433;
   }
   *{box-sizing:border-box;}
   body{
     font-family:"Georgia","Times New Roman",serif;
     background:var(--papir); color:var(--tmava);
-    margin:0; padding:24px; line-height:1.5;
+    margin:0; padding:0 24px 24px; line-height:1.5;
   }
   h1{font-size:22px; margin-bottom:4px;}
   .podtitul{color:var(--akcent); font-size:14px; margin-bottom:20px;}
@@ -42,15 +39,16 @@
   }
   button:hover{opacity:.88;}
   button.sec{background:#efe7d6; color:var(--tmava);}
-  button.btn-rozbalit{background:#3d7a5c; color:#fff;}
-  button.btn-sbalit{background:#a8552f; color:#fff;}
+  button.btn-rozbalit{background:#2f6249; color:#fff;}
+  button.btn-sbalit{background:#8a441f; color:#fff;}
+  button.btn-smazat{background:#a33; color:#fff;}
   table{width:100%; border-collapse:collapse; font-size:13px;}
   th,td{text-align:left; padding:5px 8px; border-bottom:1px solid #eee;}
   th{color:var(--akcent); font-weight:normal; border-bottom:2px solid var(--linka);}
   tr:hover{background:#f8f4ea;}
   .zena-rad{border-left:3px solid var(--zena);}
   .muz-rad{border-left:3px solid var(--muz);}
-  .zemrel{color:#999;}
+  .zemrel{color:#666;}
   .pill{
     display:inline-block; font-size:11px; padding:1px 7px; border-radius:10px;
     background:#efe7d6; color:var(--akcent); margin-left:6px;
@@ -65,17 +63,49 @@
   .kontrola-radek{padding:4px 0; font-size:13px;}
   .generace-nadpis{background:#f2ead9; font-weight:bold;}
 
-  #stromWrap{
-    width:100%; overflow:hidden; border:1px solid var(--linka); border-radius:6px;
-    background:#fffdf8; height:560px; position:relative;
+  /* ---------- HLAVIČKA (fáze 7) ---------- */
+  header.hlavicka{
+    background:linear-gradient(135deg, var(--bronz-tmavy), var(--bronz));
+    margin:0 -24px 20px; padding:18px 24px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    border-bottom:3px solid var(--bronz-tmavy);
   }
-  .karta-obdelnik{ fill:#fff; stroke-width:2; rx:8; }
+  header.hlavicka h1{
+    font-family:"Palatino Linotype","Book Antiqua",Georgia,serif;
+    color:#fbead2; margin:0; font-size:26px; letter-spacing:.5px;
+    text-shadow:0 1px 2px rgba(0,0,0,.25);
+  }
+  header.hlavicka .podtitulek-app{ color:#f0dcc0; font-size:12.5px; margin-top:2px; }
+  #btnUlozitHeader{
+    background:#7a1f1f; color:#fff; font-weight:bold; font-size:14px;
+    padding:10px 18px; border-radius:8px; border:2px solid rgba(255,255,255,.25);
+  }
+  #btnUlozitHeader.stav-ulozeno{ background:#245c3f; }
+
+  /* ---------- DLAŽDICE STROM — bronzový rám + papírová textura uvnitř ---------- */
+  .panel-strom{
+    background:var(--bronz); border:1px solid var(--bronz-tmavy); border-radius:10px;
+    padding:16px 18px; margin-bottom:18px;
+  }
+  .panel-strom h2{ color:#fbead2; border-bottom:1px solid rgba(255,255,255,.25); }
+  .panel-strom .lista-ovladani span{ color:#f3e2c8 !important; }
+  .panel-strom button.sec{ background:#c99a6c; color:#3a2a18; border:1px solid #8a5a2f; }
+  #prekryvVysledek{ color:#fbead2; }
+
+  #stromWrap{
+    width:100%; overflow:hidden; border-radius:6px;
+    height:560px; position:relative; touch-action:none;
+    background-color:#efe3c8;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.42 0 0 0 0 0.28 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+  }
+  .karta-obdelnik{ fill:#fffdf7; stroke-width:2; rx:8; }
   .karta-obdelnik.muz{ stroke:var(--muz); }
   .karta-obdelnik.zena{ stroke:var(--zena); }
-  .karta-obdelnik.zemrely{ fill:#f2efe7; opacity:.72; }
+  .karta-obdelnik.zemrely{ fill:#efe8d8; opacity:.78; }
   .karta-jmeno{ font-family:"Georgia",serif; font-size:13px; fill:var(--tmava); }
-  .karta-roky{ font-family:"Georgia",serif; font-size:11px; fill:#8a8071; }
-  .spojnice{ stroke:var(--linka); stroke-width:1.5; fill:none; }
+  .karta-roky{ font-family:"Georgia",serif; font-size:11px; fill:#6b6255; }
+  .spojnice{ stroke:#8a7860; stroke-width:1.5; fill:none; }
   .limit-box{
     background:#fbf1e4; border:1px solid #e3cfa0; border-radius:6px;
     padding:10px 14px; font-size:13px; margin-top:12px;
@@ -83,10 +113,10 @@
   tr.zvyrazneno-radek{ background:#fdf0d0 !important; }
   .karta-obdelnik.zvyrazneno{ stroke:#c9781a; stroke-width:3.5; }
   .toggle-ikona{ cursor:pointer; user-select:none; }
-  .toggle-ikona circle{ fill:#a8552f; stroke:#a8552f; stroke-width:1.5; }
+  .toggle-ikona circle{ fill:#8a441f; stroke:#8a441f; stroke-width:1.5; }
   .toggle-ikona text{ font-size:12px; fill:#fff; text-anchor:middle; font-family:sans-serif; font-weight:bold; }
   .badge-sbaleno{ cursor:pointer; }
-  .badge-sbaleno rect{ fill:#3d7a5c; stroke:#3d7a5c; stroke-width:1; }
+  .badge-sbaleno rect{ fill:#2f6249; stroke:#2f6249; stroke-width:1; }
   .badge-sbaleno text{ font-size:12px; fill:#fff; text-anchor:middle; font-family:sans-serif; font-weight:bold; }
   .d-znacka{ cursor:pointer; }
   .d-znacka circle{ fill:#c9781a; }
@@ -94,6 +124,17 @@
   .lista-ovladani{ margin-bottom:10px; }
   #stromWrap{ cursor:grab; }
   #stromWrap.tahnu{ cursor:grabbing; }
+
+  /* ---------- sbalitelná vývojářská sekce ---------- */
+  .devrozbal{ cursor:pointer; user-select:none; }
+  .devobsah{ display:none; margin-top:12px; }
+  .devobsah.otevreno{ display:block; }
+
+  /* ---------- PATIČKA ---------- */
+  footer.paticka{
+    text-align:center; font-size:12px; color:#9a8f7c;
+    padding:18px 0 6px; margin-top:6px;
+  }
 
   /* ---------- FÁZE 4: boční detail panel ---------- */
   #detailOverlay{
@@ -122,33 +163,22 @@
 </head>
 <body>
 
-<h1>🌳 Rodokmen — Fáze 1–6</h1>
-<div class="podtitul">Datový model, layout engine, sbalování/pan-zoom, detail panel, fotky, soubor + undo (§7, body 1–6)</div>
-
-<div class="panel">
-  <h2>Soubor</h2>
-  <div class="lista-ovladani">
-    <button onclick="otevritSoubor()">📂 Otevřít</button>
-    <button onclick="ulozitSoubor(false)">💾 Uložit (Ctrl+S)</button>
-    <button class="sec" onclick="ulozitSoubor(true)">💾 Uložit jako…</button>
-    <button class="sec" onclick="vratitZmenu()">↶ Zpět (Ctrl+Z)</button>
-    <button class="sec" onclick="znovuZmenu()">↷ Znovu</button>
-    <span id="indikatorUlozeni" style="margin-left:10px; font-size:13px; font-weight:bold;">✓ uloženo</span>
-    <input type="file" id="vstupSouboru" accept="application/json,.json" style="display:none" onchange="zpracujVstupSouboru(this)">
+<header class="hlavicka">
+  <div>
+    <h1>🌳 KoŘeny rodu <span style="opacity:.85; font-size:19px;">— M68</span></h1>
+    <div class="podtitulek-app">Genealogie rodiny · přehled předků a potomků · pro Moniku</div>
   </div>
-  <div style="font-size:12px; color:#8a8071;">
-    Soubor si po uložení drž ve své složce Google Drive (desktopová synchronizace) —
-    o zálohu a dostupnost se pak stará Google, appka sama s Drive nekomunikuje.
-  </div>
-</div>
+  <button id="btnUlozitHeader" onclick="ulozitSoubor(false)">Uložit 🔴</button>
+</header>
 
-<div class="panel">
-  <h2>Strom — layout engine + interakce (fáze 2+3+4)</h2>
+<div class="panel-strom">
+  <h2>Strom</h2>
   <div class="lista-ovladani">
     <button onclick="domu()">🏠 Domů</button>
     <button class="btn-rozbalit" onclick="rozbalitVse()">Rozbalit vše</button>
     <button class="btn-sbalit" onclick="sbalitVse()">Sbalit vše</button>
-    <span style="font-size:12px; color:#8a8071; margin-left:8px;">Klik na kartu = detail a editace, tažení myší = posun, kolečko = zoom, − na kartě = sbalit větev, oranžové "D" = má i další (dosud nevykreslené) svazky</span>
+    <button class="sec" onclick="exportovatPNG()">🖼️ Export PNG</button>
+    <span style="font-size:12px; margin-left:8px;">Klik na kartu = detail a editace, tažení/prst = posun, kolečko/sevření prstů = zoom, − na kartě = sbalit větev, oranžové "D" = má i další svazky</span>
   </div>
   <div id="stromWrap"></div>
   <div id="prekryvVysledek" style="margin-top:10px; font-size:13px;"></div>
@@ -160,13 +190,13 @@
 </div>
 
 <div class="panel">
-  <h2>Přehled testovacích dat</h2>
-  <div id="statistiky"></div>
-</div>
-
-<div class="panel">
-  <h2>Kontrola integrity modelu</h2>
-  <div id="kontrolyVysledek"></div>
+  <h2 class="devrozbal" onclick="prepniDevSekci()">🔧 Kontrolní nástroje (pro tebe i Moniku, dobrovolné) ▾</h2>
+  <div id="devObsah" class="devobsah">
+    <h3 style="font-size:14px; margin:12px 0 6px;">Přehled dat</h3>
+    <div id="statistiky"></div>
+    <h3 style="font-size:14px; margin:16px 0 6px;">Kontrola integrity (ověření, že v datech nechybí/nezdvojuje se nic důležitého)</h3>
+    <div id="kontrolyVysledek"></div>
+  </div>
 </div>
 
 <div class="panel">
@@ -181,6 +211,27 @@
   <h2>Svazky (páry a jejich děti)</h2>
   <div id="tabulkaSvazku"></div>
 </div>
+
+<div class="panel">
+  <h2>Drive + Soubor</h2>
+  <div class="lista-ovladani">
+    <button onclick="otevritSoubor()">📂 Otevřít</button>
+    <button onclick="ulozitSoubor(false)">💾 Uložit (Ctrl+S)</button>
+    <button class="sec" onclick="ulozitSoubor(true)">💾 Uložit jako…</button>
+    <button class="sec" onclick="vratitZmenu()">↶ Zpět (Ctrl+Z)</button>
+    <button class="sec" onclick="znovuZmenu()">↷ Znovu</button>
+    <span id="indikatorUlozeni" style="margin-left:10px; font-size:13px; font-weight:bold;">✓ uloženo</span>
+    <input type="file" id="vstupSouboru" accept="application/json,.json" style="display:none" onchange="zpracujVstupSouboru(this)">
+  </div>
+  <div style="font-size:12px; color:#6b6255;">
+    <b>Jeden soubor = celý rodokmen.</b> Ulož si ho do své složky na Google Drive
+    (desktopová synchronizace) — o zálohu a dostupnost se pak stará Google,
+    appka sama s Drive nekomunikuje. Tlačítko "Uložit 🔴" nahoře v hlavičce
+    dělá přesně totéž co "Uložit" tady — je to jen připomínka na dohled.
+  </div>
+</div>
+
+<footer class="paticka">Pro M68 &nbsp;©&nbsp; ⁶⁷〽️ &amp; 🔆Claude 2026</footer>
 
 <script>
 /* ==========================================================
@@ -707,7 +758,7 @@ function zkontrolujPrekryvy(karty){
 }
 
 /* ---------- vykreslení + pan/zoom ---------- */
-function vykresliStrom(d){
+function sestavObsahStromu(d, jeExport){
   const layout = postavLayout(d);
   const karty = [], cary = [], badge = [];
   sberAscend(layout.ascendA, karty, cary, badge);
@@ -718,20 +769,11 @@ function vykresliStrom(d){
   const rootMidX = (xA0+xB0)/2;
   layout.descendNodes.forEach(n => sberDescend(n, karty, cary, badge, rootMidX, 0));
 
-  const kolize = zkontrolujPrekryvy(karty);
-  let hlaska = kolize.length===0
-    ? "✅ Kontrola překryvů: 0 kolizí na "+karty.length+" vykreslených kartách."
-    : "⚠️ Nalezeno "+kolize.length+" překryvů: "+kolize.join(", ");
-  if(vybraneOsoby.size>0 && ![...vybraneOsoby].some(id=>karty.some(k=>k.id===id))){
-    hlaska += " · ℹ️ Vybraná osoba je momentálně sbalená ve větvi — rozbal ji tlačítkem na kartě nebo tlačítkem Rozbalit vše.";
-  }
-  document.getElementById("prekryvVysledek").innerHTML = hlaska;
-
   const xsAll = karty.map(k=>k.x).concat(badge.map(b=>b.x), [0]);
   const ysAll = karty.map(k=>k.y).concat(badge.map(b=>b.y), [0]);
   const minX = Math.min(...xsAll)-CARD_W, maxX = Math.max(...xsAll)+CARD_W;
   const minY = Math.min(...ysAll)-CARD_H, maxY = Math.max(...ysAll)+CARD_H;
-  posledniBBox = {minX, minY, w:maxX-minX, h:maxY-minY};
+  const bbox = {minX, minY, w:maxX-minX, h:maxY-minY};
 
   let vnitrek = "";
   cary.forEach(c=>{
@@ -748,26 +790,27 @@ function vykresliStrom(d){
     if(!o) return;
     const zemrely = !!o.umrti;
     const roky = "*"+formatDatum(o.narozeni)+(o.umrti? " †"+formatDatum(o.umrti) : "");
-    const vybrano = vybraneOsoby.has(k.id);
+    const vybrano = !jeExport && vybraneOsoby.has(k.id);
+    const klik = jeExport ? '' : ` style="cursor:pointer" onclick="zvyrazniZeStromu('${k.id}')"`;
     vnitrek += `<g data-osoba="${k.id}" transform="translate(${k.x - CARD_W/2}, ${k.y - CARD_H/2})">
-      <rect class="karta-obdelnik ${o.pohlavi==='z'?'zena':'muz'} ${zemrely?'zemrely':''} ${vybrano?'zvyrazneno':''}" width="${CARD_W}" height="${CARD_H}" rx="8" style="cursor:pointer" onclick="zvyrazniZeStromu('${k.id}')"/>`;
+      <rect class="karta-obdelnik ${o.pohlavi==='z'?'zena':'muz'} ${zemrely?'zemrely':''} ${vybrano?'zvyrazneno':''}" width="${CARD_W}" height="${CARD_H}" rx="8"${klik}/>`;
     if(o.foto){
-      vnitrek += `<defs><clipPath id="klip_${k.id}"><circle cx="28" cy="27" r="18"/></clipPath></defs>
-        <image href="${o.foto}" x="10" y="9" width="36" height="36" clip-path="url(#klip_${k.id})" preserveAspectRatio="xMidYMid slice" style="pointer-events:none"/>`;
+      vnitrek += `<defs><clipPath id="klip_${k.id}${jeExport?'_e':''}"><circle cx="28" cy="27" r="18"/></clipPath></defs>
+        <image href="${o.foto}" x="10" y="9" width="36" height="36" clip-path="url(#klip_${k.id}${jeExport?'_e':''})" preserveAspectRatio="xMidYMid slice" style="pointer-events:none"/>`;
     } else {
       vnitrek += `<circle cx="28" cy="27" r="18" fill="${o.pohlavi==='z'?'var(--zena)':'var(--muz)'}" opacity="0.22" style="pointer-events:none"/>
         <text x="28" y="32" text-anchor="middle" font-size="14" font-family="Georgia,serif" fill="var(--tmava)" style="pointer-events:none">${escHtml((o.jmeno||'?').charAt(0))}</text>`;
     }
     vnitrek += `<title>${escHtml(o.jmeno+' '+o.prijmeni)}, ${escHtml(roky)}</title><text class="karta-jmeno" x="52" y="22" style="pointer-events:none">${escHtml(zkratitText(o.jmeno+' '+o.prijmeni, CARD_W-52-10, 13))}</text>
       <text class="karta-roky" x="52" y="40" style="pointer-events:none">${escHtml(zkratitText(roky, CARD_W-52-10, 11))}</text>`;
-    if(k.maExpand){
+    if(!jeExport && k.maExpand){
       const iy = k.y<=0 ? -12 : CARD_H+12;
       const fn = k.y<=0 ? 'toggleNahoru' : 'toggleDolu';
       vnitrek += `<g class="toggle-ikona" transform="translate(${CARD_W/2},${iy})" onclick="event.stopPropagation(); ${fn}('${k.id}')">
         <circle r="9"/><text y="4">−</text>
       </g>`;
     }
-    if(k.extraUnions && k.extraUnions.length>0){
+    if(!jeExport && k.extraUnions && k.extraUnions.length>0){
       vnitrek += `<g class="d-znacka" transform="translate(${CARD_W-12},4)" onclick="event.stopPropagation(); vyberOsobu('${k.id}', false)">
         <circle r="9"/><text y="4">D</text>
       </g>`;
@@ -775,12 +818,30 @@ function vykresliStrom(d){
     vnitrek += `</g>`;
   });
 
-  badge.forEach(b=>{
-    const fn = b.typ==='nahoru' ? 'toggleNahoru' : 'toggleDolu';
-    vnitrek += `<g class="badge-sbaleno" transform="translate(${b.x-30},${b.y-14})" onclick="${fn}('${b.id}')">
-      <rect width="60" height="28" rx="14"/><text x="30" y="18">+${b.pocet}</text>
-    </g>`;
-  });
+  if(!jeExport){
+    badge.forEach(b=>{
+      const fn = b.typ==='nahoru' ? 'toggleNahoru' : 'toggleDolu';
+      vnitrek += `<g class="badge-sbaleno" transform="translate(${b.x-30},${b.y-14})" onclick="${fn}('${b.id}')">
+        <rect width="60" height="28" rx="14"/><text x="30" y="18">+${b.pocet}</text>
+      </g>`;
+    });
+  }
+
+  return {vnitrek, bbox, karty};
+}
+
+function vykresliStrom(d){
+  const {vnitrek, bbox, karty} = sestavObsahStromu(d, false);
+  posledniBBox = bbox;
+
+  const kolize = zkontrolujPrekryvy(karty);
+  let hlaska = kolize.length===0
+    ? "✅ Kontrola překryvů: 0 kolizí na "+karty.length+" vykreslených kartách."
+    : "⚠️ Nalezeno "+kolize.length+" překryvů: "+kolize.join(", ");
+  if(vybraneOsoby.size>0 && ![...vybraneOsoby].some(id=>karty.some(k=>k.id===id))){
+    hlaska += " · ℹ️ Vybraná osoba je momentálně sbalená ve větvi — rozbal ji tlačítkem na kartě nebo tlačítkem Rozbalit vše.";
+  }
+  document.getElementById("prekryvVysledek").innerHTML = hlaska;
 
   document.getElementById("stromWrap").innerHTML =
     `<svg id="stromSvg" width="1000" height="560" xmlns="http://www.w3.org/2000/svg">
@@ -794,6 +855,60 @@ function vykresliStrom(d){
 function aplikujTransform(){
   const g = document.getElementById('viewportG');
   if(g) g.setAttribute('transform', `translate(${pan.x},${pan.y}) scale(${pan.scale})`);
+}
+
+/* ---------- FÁZE 7: export PNG (plně rozbalený, bez ovládacích prvků) ---------- */
+function exportovatPNG(){
+  const puvodniNahoru = new Set(sbalenoNahoru);
+  const puvodniDolu = new Set(sbalenoDolu);
+  sbalenoNahoru = new Set();
+  sbalenoDolu = new Set();
+  const {vnitrek, bbox} = sestavObsahStromu(data, true);
+  sbalenoNahoru = puvodniNahoru;
+  sbalenoDolu = puvodniDolu;
+
+  // CSS proměnné musí být uvnitř exportovaného SVG znovu definované —
+  // mimo dokument appky by se var(--zena) apod. jinak neprojevily.
+  const styl = `
+    :root{ --zena:#a8677c; --muz:#5c7a99; --tmava:#2e2620; }
+    text{ font-family:Georgia,'Times New Roman',serif; }
+    .karta-obdelnik{ fill:#fffdf7; stroke-width:2; }
+    .karta-obdelnik.muz{ stroke:var(--muz); }
+    .karta-obdelnik.zena{ stroke:var(--zena); }
+    .karta-obdelnik.zemrely{ fill:#efe8d8; opacity:.78; }
+    .karta-jmeno{ font-size:13px; fill:var(--tmava); }
+    .karta-roky{ font-size:11px; fill:#6b6255; }
+    .spojnice{ stroke:#8a7860; stroke-width:1.5; fill:none; }
+  `;
+  const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="${bbox.w}" height="${bbox.h}" viewBox="${bbox.minX} ${bbox.minY} ${bbox.w} ${bbox.h}">
+    <rect x="${bbox.minX}" y="${bbox.minY}" width="${bbox.w}" height="${bbox.h}" fill="#faf3e2"/>
+    <style>${styl}</style>
+    ${vnitrek}
+  </svg>`;
+
+  const blob = new Blob([svgMarkup], {type:'image/svg+xml;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = function(){
+    const canvas = document.createElement('canvas');
+    canvas.width = bbox.w; canvas.height = bbox.h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#faf3e2';
+    ctx.fillRect(0, 0, bbox.w, bbox.h);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(function(pngBlob){
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(pngBlob);
+      a.download = (data.meta.nazev||'rodokmen').replace(/[^a-z0-9\-_ ]/gi,'_') + '.png';
+      a.click();
+    }, 'image/png');
+  };
+  img.onerror = function(){
+    alert('Export do PNG se nepovedl. Zkus to prosím znovu.');
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
 }
 function domu(){
   if(!posledniBBox) return;
@@ -890,9 +1005,20 @@ function oznacUlozeno(){
 }
 function aktualizujIndikatorUlozeni(){
   const el = document.getElementById('indikatorUlozeni');
-  if(!el) return;
-  el.textContent = neulozenoOdPosledniUlozeni ? '● neuloženo' : '✓ uloženo';
-  el.style.color = neulozenoOdPosledniUlozeni ? '#a8552f' : '#3d7a5c';
+  if(el){
+    el.textContent = neulozenoOdPosledniUlozeni ? '● neuloženo' : '✓ uloženo';
+    el.style.color = neulozenoOdPosledniUlozeni ? '#a8552f' : '#3d7a5c';
+  }
+  const btn = document.getElementById('btnUlozitHeader');
+  if(btn){
+    btn.textContent = neulozenoOdPosledniUlozeni ? 'Uložit 🔴' : 'Uloženo ✅';
+    btn.classList.toggle('stav-ulozeno', !neulozenoOdPosledniUlozeni);
+  }
+}
+
+function prepniDevSekci(){
+  const el = document.getElementById('devObsah');
+  el.classList.toggle('otevreno');
 }
 
 // ---------- AUTOSAVE DO localStorage (havarijní kopie) ----------
@@ -1129,6 +1255,11 @@ function vykresliDetail(id){
       <button class="sec" onclick="zobrazFormularPridani('${id}','sourozenec')">+ Sourozenec</button>
     </div>
     <div id="pf_pridat_form"></div>
+
+    <hr style="margin:18px 0; border:none; border-top:1px solid var(--linka);">
+    ${jeKorenovaOsoba(id)
+      ? `<div style="font-size:12px; color:#999;">Kořenový pár nelze smazat.</div>`
+      : `<button class="btn-smazat" onclick="smazatOsobu('${id}')">🗑️ Smazat osobu</button>`}
   `;
 }
 
@@ -1271,6 +1402,33 @@ function ulozitDetail(id){
   vykresliDetail(id);
 }
 
+/* ---------- FÁZE 7: smazání osoby ---------- */
+function jeKorenovaOsoba(id){
+  const ru = data.svazky.find(s=>s.id===data.meta.koren);
+  return !!(ru && ru.partneri.includes(id));
+}
+function smazatOsobu(id){
+  const o = data.osoby[id];
+  if(!o) return;
+  if(jeKorenovaOsoba(id)){
+    alert('Tuto osobu nelze smazat — je to jeden z kořenového páru, na kterém stojí celý strom.');
+    return;
+  }
+  if(!confirm('Opravdu natrvalo smazat osobu "'+o.jmeno+' '+o.prijmeni+'"?\n\nDá se to vrátit tlačítkem Zpět (Ctrl+Z), dokud appku znovu neotevřeš.')) return;
+
+  ulozUndoBod();
+  data.svazky.forEach(s=>{
+    s.partneri = s.partneri.filter(p=>p!==id);
+    s.deti = s.deti.filter(c=>c!==id);
+  });
+  data.svazky = data.svazky.filter(s => s.partneri.length>0 || s.deti.length>0);
+  delete data.osoby[id];
+  vybraneOsoby.delete(id);
+
+  zavriDetail();
+  prekresliVse();
+}
+
 /* ---------- křížové zvýraznění tabulky ↔ strom ---------- */
 function oznacRadekOsoby(){
   document.querySelectorAll('tr[data-osoba-id]').forEach(tr =>
@@ -1342,6 +1500,44 @@ zkontrolujObnovuPriStartu();
   wrap.addEventListener('click', e => {
     if(tazeniProbehlo){ e.stopPropagation(); e.preventDefault(); tazeniProbehlo = false; }
   }, true);
+
+  // ---------- dotykové ovládání (tablet) ----------
+  // Jeden prst = posun, jako tažení myší. Dva prsty = zoom podle změny
+  // vzdálenosti mezi nimi (pinch). touch-action:none v CSS na #stromWrap
+  // zabrání prohlížeči posouvat kvůli tomu celou stránku.
+  let vzdalenostPredtim = null;
+  wrap.addEventListener('touchstart', e => {
+    if(e.touches.length===1){
+      tahnu = true; tazeniProbehlo = false;
+      posledniX = e.touches[0].clientX; posledniY = e.touches[0].clientY;
+    } else if(e.touches.length===2){
+      tahnu = false;
+      vzdalenostPredtim = Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+    }
+  }, {passive:true});
+  wrap.addEventListener('touchmove', e => {
+    if(e.touches.length===1 && tahnu){
+      e.preventDefault();
+      const dx = e.touches[0].clientX - posledniX, dy = e.touches[0].clientY - posledniY;
+      if(Math.abs(dx) > 2 || Math.abs(dy) > 2) tazeniProbehlo = true;
+      pan.x += dx; pan.y += dy;
+      posledniX = e.touches[0].clientX; posledniY = e.touches[0].clientY;
+      aplikujTransform();
+    } else if(e.touches.length===2 && vzdalenostPredtim){
+      e.preventDefault();
+      const nova = Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+      pan.scale = Math.max(0.25, Math.min(3, pan.scale * (nova/vzdalenostPredtim)));
+      vzdalenostPredtim = nova;
+      aplikujTransform();
+    }
+  }, {passive:false});
+  wrap.addEventListener('touchend', () => { tahnu = false; vzdalenostPredtim = null; }, {passive:true});
 })();
 </script>
 
