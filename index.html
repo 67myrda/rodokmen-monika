@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rodokmen — fáze 1: datový model</title>
 <style>
+  /* TODO FÁZE 7 (vizuální ladění): zvýšit kontrast písma — na starším displeji
+     s nízkým rozlišením je aktuální --tmava/--akcent na --papir podle zpětné vazby
+     hůř čitelné, než by mělo být. Otestovat i na malém/starším notebooku, ne jen
+     na Retina displeji. Zmínil Myrda 13.7.2026. */
   :root{
     --papir:#faf6ee; --tmava:#3a3128; --linka:#c9bfa8; --akcent:#8a6d4b;
     --muz:#5c7a99; --zena:#a8677c;
@@ -454,7 +458,7 @@ function najdiSvazkyJakoPartner(d, personId){
 let sbalenoNahoru = new Set();
 let sbalenoDolu = new Set();
 let dPoznamky = {};
-let vybranaOsobaId = null;
+let vybraneOsoby = new Set();
 let pan = {x:0, y:0, scale:1};
 let panInicializovan = false;
 let posledniBBox = null;
@@ -646,7 +650,7 @@ function vykresliStrom(d){
   let hlaska = kolize.length===0
     ? "✅ Kontrola překryvů: 0 kolizí na "+karty.length+" vykreslených kartách."
     : "⚠️ Nalezeno "+kolize.length+" překryvů: "+kolize.join(", ");
-  if(vybranaOsobaId && !karty.some(k=>k.id===vybranaOsobaId)){
+  if(vybraneOsoby.size>0 && ![...vybraneOsoby].some(id=>karty.some(k=>k.id===id))){
     hlaska += " · ℹ️ Vybraná osoba je momentálně sbalená ve větvi — rozbal ji tlačítkem na kartě nebo tlačítkem Rozbalit vše.";
   }
   document.getElementById("prekryvVysledek").innerHTML = hlaska;
@@ -672,7 +676,7 @@ function vykresliStrom(d){
     if(!o) return;
     const zemrely = !!o.umrti;
     const roky = "*"+formatDatum(o.narozeni)+(o.umrti? " †"+formatDatum(o.umrti) : "");
-    const vybrano = k.id===vybranaOsobaId;
+    const vybrano = vybraneOsoby.has(k.id);
     vnitrek += `<g data-osoba="${k.id}" transform="translate(${k.x - CARD_W/2}, ${k.y - CARD_H/2})">
       <rect class="karta-obdelnik ${o.pohlavi==='z'?'zena':'muz'} ${zemrely?'zemrely':''} ${vybrano?'zvyrazneno':''}" width="${CARD_W}" height="${CARD_H}" rx="8" style="cursor:pointer" onclick="zvyrazniZeStromu('${k.id}')"/>
       <text class="karta-jmeno" x="10" y="22" style="pointer-events:none">${o.jmeno} ${o.prijmeni}</text>
@@ -750,24 +754,28 @@ function otevriDPanel(personId){
 }
 
 /* ---------- křížové zvýraznění tabulky ↔ strom ---------- */
-function oznacRadekOsoby(id){
+function oznacRadekOsoby(){
   document.querySelectorAll('tr[data-osoba-id]').forEach(tr =>
-    tr.classList.toggle('zvyrazneno-radek', tr.dataset.osobaId===id));
+    tr.classList.toggle('zvyrazneno-radek', vybraneOsoby.has(tr.dataset.osobaId)));
 }
 function zvyrazniOsobu(id){
-  vybranaOsobaId = id;
-  oznacRadekOsoby(id);
+  vybraneOsoby = new Set([id]);
+  oznacRadekOsoby();
   vykresliStrom(data);
 }
 function zvyrazniSvazek(id){
   document.querySelectorAll('tr[data-svazek-id]').forEach(tr =>
     tr.classList.toggle('zvyrazneno-radek', tr.dataset.svazekId===id));
   const s = data.svazky.find(x=>x.id===id);
-  if(s && s.partneri[0]) zvyrazniOsobu(s.partneri[0]);
+  if(!s) return;
+  // zvýraznit OBA partnery najednou (dřív se zvýraznil jen první — opraveno)
+  vybraneOsoby = new Set(s.partneri.filter(Boolean));
+  oznacRadekOsoby();
+  vykresliStrom(data);
 }
 function zvyrazniZeStromu(id){
-  vybranaOsobaId = id;
-  oznacRadekOsoby(id);
+  vybraneOsoby = new Set([id]);
+  oznacRadekOsoby();
   const tr = document.querySelector('tr[data-osoba-id="'+id+'"]');
   if(tr && tr.scrollIntoView) tr.scrollIntoView({block:'center', behavior:'smooth'});
   vykresliStrom(data);
