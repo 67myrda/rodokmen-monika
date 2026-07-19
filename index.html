@@ -106,6 +106,7 @@
   .karta-jmeno{ font-family:"Georgia",serif; font-size:13px; fill:var(--tmava); }
   .karta-roky{ font-family:"Georgia",serif; font-size:11px; fill:#6b6255; }
   .spojnice{ stroke:#8a7860; stroke-width:1.5; fill:none; }
+  .spojnice-vedlejsi{ stroke-dasharray:5 4; opacity:.75; }
   .limit-box{
     background:#fbf1e4; border:1px solid #e3cfa0; border-radius:6px;
     padding:10px 14px; font-size:13px; margin-top:12px;
@@ -159,9 +160,56 @@
   #detailPanel h3{ font-size:13px; color:var(--akcent); margin:0 0 8px 0; }
   .svazek-box{ margin-bottom:8px; padding:8px 10px; background:#f8f4ea; border-radius:6px; font-size:13px; }
   .pridat-box{ margin-top:10px; padding:10px; background:#fbf1e4; border-radius:6px; }
+  .priloha-radek{ display:flex; gap:10px; align-items:flex-start; padding:8px; background:#f8f4ea; border-radius:8px; margin-bottom:8px; }
+  #lightbox{
+    position:fixed; inset:0; z-index:200; background:rgba(20,16,12,.88);
+    display:none; align-items:center; justify-content:center; cursor:zoom-out;
+  }
+  #lightbox.otevreno{ display:flex; }
+  #lightbox img{ max-width:94vw; max-height:88vh; border-radius:6px; box-shadow:0 10px 50px rgba(0,0,0,.6); }
+  .lightbox-popis{ position:fixed; bottom:18px; left:0; right:0; text-align:center; color:#f0e6cf; font-size:14px; text-shadow:0 1px 3px #000; }
+
+  /* ---------- UVÍTACÍ OBRAZOVKA (19.7.2026, plán §7.7) ---------- */
+  #uvitani{
+    position:fixed; inset:0; z-index:100;
+    background:rgba(46,38,32,.55); display:flex; align-items:center; justify-content:center;
+  }
+  #uvitani.skryto{ display:none; }
+  .uvitani-okno{
+    background:var(--papir); border:2px solid var(--bronz); border-radius:14px;
+    max-width:520px; width:92vw; padding:28px 30px; box-shadow:0 12px 40px rgba(0,0,0,.35);
+    text-align:center;
+  }
+  .uvitani-okno h2{
+    font-family:"Palatino Linotype","Book Antiqua",Georgia,serif;
+    font-size:24px; margin:0 0 6px; color:var(--bronz-tmavy); border:none;
+  }
+  .uvitani-okno .uvitani-text{ font-size:14px; color:var(--tmava); margin:14px 0 20px; text-align:left; line-height:1.6; }
+  .uvitani-okno button{ display:block; width:100%; margin:8px 0 0; padding:12px; font-size:15px; }
+  .uvitani-okno button.sec{ font-size:13px; }
+  .uvitani-obnova{
+    background:#fdf0d0; border:1px solid #e3cfa0; border-radius:8px;
+    padding:10px 12px; font-size:13px; margin-bottom:6px; text-align:left;
+  }
 </style>
 </head>
 <body>
+
+<div id="uvitani" class="skryto">
+  <div class="uvitani-okno">
+    <h2>🌳 KoŘeny rodu — M68</h2>
+    <div style="font-size:13px; color:var(--akcent);">Rodinné album, které si píšeš sama</div>
+    <div class="uvitani-text">
+      <b>1.</b> Celý rodokmen je jeden soubor — ulož si ho do své složky Google Drive a o zálohu se stará Google.<br>
+      <b>2.</b> Klikni na kartu osoby a v pravém panelu můžeš vše dopisovat, přepisovat i přidávat fotky a příbuzné.<br>
+      <b>3.</b> Značka „−" větev sbalí do základního zobrazení, „+N" ji zase rozbalí; myší strom posouváš, kolečkem přibližuješ.
+    </div>
+    <div id="uvitaniObnova"></div>
+    <button onclick="uvitaniOtevrit()">📂 Otevřít můj rodokmen</button>
+    <button onclick="uvitaniNovy()">✨ Začít nový strom</button>
+    <button class="sec" onclick="uvitaniUkazka()">👀 Prohlédnout ukázku (testovací rodina)</button>
+  </div>
+</div>
 
 <header class="hlavicka">
   <div>
@@ -178,12 +226,13 @@
     <button class="btn-rozbalit" onclick="rozbalitVse()">Rozbalit vše</button>
     <button class="btn-sbalit" onclick="sbalitVse()">Sbalit vše</button>
     <button class="sec" onclick="exportovatPNG()">🖼️ Export PNG</button>
-    <span style="font-size:12px; margin-left:8px;">Klik na kartu = detail a editace, tažení/prst = posun, kolečko/sevření prstů = zoom, − na kartě = sbalit větev, oranžové "D" = má i další svazky</span>
+    <span style="font-size:12px; margin-left:8px;">Klik na kartu = detail a editace, tažení/prst = posun, kolečko/sevření prstů = zoom, − na kartě = sbalit větev, čárkovaná linka = další sňatek, „+N" na kartě partnera = děti z něj (klik = detail)</span>
   </div>
   <div id="stromWrap"></div>
   <div id="prekryvVysledek" style="margin-top:10px; font-size:13px;"></div>
 </div>
 
+<div id="lightbox" onclick="zavriLightbox()"><div id="lightboxObsah"></div></div>
 <div id="detailOverlay" onclick="zavriDetail()"></div>
 <div id="detailPanel">
   <div id="detailObsah"></div>
@@ -459,12 +508,23 @@ function pocetSvazku(d){ return d.svazky.length; }
 function pocetZijicich(d){ return Object.values(d.osoby).filter(o=>!o.umrti).length; }
 function pocetNeurcitych(d){ return Object.values(d.osoby).filter(o=>o.narozeni.presnost!=="den").length; }
 
+function casovaOsa(d){
+  const roky = Object.values(d.osoby)
+    .map(o => o.narozeni && o.narozeni.datum ? parseInt(String(o.narozeni.datum).slice(0,4)) : null)
+    .filter(r => r && r > 1000);
+  if(!roky.length) return "—";
+  return Math.min(...roky) + " – " + Math.max(...roky);
+}
 function vykresliStatistiky(d){
+  const pocetPriloh = Object.values(d.osoby).reduce((s,o)=>s+((o.prilohy||[]).length),0);
+  const velikostMB = (JSON.stringify(d).length/1024/1024).toFixed(1);
   document.getElementById("statistiky").innerHTML = `
     <div class="stat"><b>${pocetOsob(d)}</b>osob celkem</div>
     <div class="stat"><b>${pocetSvazku(d)}</b>svazků (párů)</div>
     <div class="stat"><b>${pocetZijicich(d)}</b>bez data úmrtí</div>
     <div class="stat"><b>${pocetNeurcitych(d)}</b>s nepřesným/chybějícím datem</div>
+    <div class="stat"><b>${pocetPriloh}</b>příloh (soubor ${velikostMB} MB)</div>
+    <div class="stat"><b>${casovaOsa(d)}</b>časové rozpětí narození</div>
   `;
 }
 function vykresliKontroly(d){
@@ -479,8 +539,8 @@ vykresliKontroly(data);
 function formatDatum(d){
   if(!d) return "?";
   if(d.presnost==="cca") return "cca "+ (d.datum? d.datum.slice(0,4):"?");
-  if(d.presnost==="rok") return d.datum;
-  return d.datum;
+  if(d.presnost==="rok") return d.datum || "?";
+  return d.datum || "?"; // oprava 19.7.2026 (audit): osoba bez data ukazovala "*null"
 }
 
 function vykresliOsoby(d){
@@ -577,11 +637,23 @@ function buildAncestorNode(d, personId, depth){
 }
 function pocetVsechOsobAscend(node){
   if(!node) return 0;
-  return 1 + node.siblings.length + pocetVsechOsobAscend(node.parents[0]) + pocetVsechOsobAscend(node.parents[1]);
+  return 1 + node.siblings.length + extraPartneriAscend(node).length
+    + pocetVsechOsobAscend(node.parents[0]) + pocetVsechOsobAscend(node.parents[1]);
+}
+// FÁZE 9b (19.7.2026): vedlejší partneři předka se kreslí jako karty přímo
+// v jeho řadě (čárkovaná spojnice), děti z těchto svazků ukazuje kulatá
+// značka "+N" NA kartě partnera (bez svislého zásahu do nižších řad —
+// matematická garance bez překryvů zůstává). Plné rozvinutí vedlejší
+// větve předka dolů = případná budoucí fáze, viz Hub.
+function extraPartneriAscend(node){
+  return (node.extraUnions||[]).map(u => ({
+    sid: u.partneri.find(p => p !== node.id) || null,
+    pocetDeti: u.deti.length, unionId: u.id
+  })).filter(e => e.sid);
 }
 function sirkaAscend(node){
   if(!node) return 0;
-  const rowWidth = 1 + node.siblings.length;
+  const rowWidth = 1 + node.siblings.length + extraPartneriAscend(node).length;
   if(sbalenoNahoru.has(node.id)){ node.width = rowWidth; return node.width; }
   const wA = sirkaAscend(node.parents[0]);
   const wB = sirkaAscend(node.parents[1]);
@@ -591,7 +663,8 @@ function sirkaAscend(node){
 function priradXAscend(node, xLeft){
   if(!node) return;
   node.left = xLeft;
-  const row = [node.id, ...node.siblings];
+  const extras = extraPartneriAscend(node);
+  const row = [node.id, ...extras.map(e=>e.sid), ...node.siblings];
   const rowLeft = xLeft + (node.width - row.length)/2;
   node.rowPositions = row.map((id,i) => ({id, x: rowLeft + i + 0.5}));
   node.centerX = xLeft + node.width/2;
@@ -603,34 +676,46 @@ function priradXAscend(node, xLeft){
   if(node.parents[1]) priradXAscend(node.parents[1], parentsLeft + wA);
 }
 
-// --- DESCEND (potomci) ---
+// --- DESCEND (potomci) — FÁZE 9a (19.7.2026): VŠECHNY svazky osoby,
+// ne jen první. Karta osoby + partneři za sebou v řadě, děti visí pod
+// "svým" svazkem. "D" značka u potomků tím zaniká — vše je vidět.
 function buildDescendNode(d, personId, depth){
-  const node = {id: personId, depth, spouseId:null, children:[], extraUnions:[]};
+  const node = {id: personId, depth, unions:[], extraUnions:[]};
   const uniony = najdiSvazkyJakoPartner(d, personId);
-  if(uniony.length){
-    const u = uniony[0];
-    node.spouseId = u.partneri.find(p => p !== personId) || null;
-    node.children = u.deti.map(cid => buildDescendNode(d, cid, depth+1));
-    node.extraUnions = uniony.slice(1);
-  }
+  node.unions = uniony.map(u => ({
+    id: u.id, typ: u.typ,
+    spouseId: u.partneri.find(p => p !== personId) || null,
+    children: u.deti.map(cid => buildDescendNode(d, cid, depth+1))
+  }));
   return node;
 }
 function pocetVsechOsobDescend(node){
-  return 1 + (node.spouseId?1:0) + node.children.reduce((s,c)=>s+pocetVsechOsobDescend(c),0);
+  return 1 + node.unions.reduce((s,u)=>
+    s + (u.spouseId?1:0) + u.children.reduce((t,c)=>t+pocetVsechOsobDescend(c),0), 0);
+}
+function vsechnyDetiDescend(node){
+  return node.unions.reduce((arr,u)=>arr.concat(u.children), []);
 }
 function sirkaDescend(node){
-  const ownWidth = node.spouseId ? 2 : 1;
-  if(sbalenoDolu.has(node.id) || !node.children.length){ node.width = ownWidth; return node.width; }
-  const childrenWidth = node.children.reduce((s,c) => s + sirkaDescend(c), 0);
-  node.width = Math.max(ownWidth, childrenWidth);
+  const rowWidth = 1 + node.unions.filter(u=>u.spouseId).length;
+  const deti = vsechnyDetiDescend(node);
+  if(sbalenoDolu.has(node.id) || !deti.length){ node.width = rowWidth; return node.width; }
+  const childrenWidth = deti.reduce((s,c) => s + sirkaDescend(c), 0);
+  node.width = Math.max(rowWidth, childrenWidth);
   return node.width;
 }
 function priradXDescend(node, xLeft){
   node.left = xLeft;
   node.centerX = xLeft + node.width/2;
+  // řada karet: [osoba][partner1][partner2]… — centrovaná ve slotu
+  const rowIds = [node.id].concat(node.unions.filter(u=>u.spouseId).map(u=>u.spouseId));
+  const rowLeft = xLeft + (node.width - rowIds.length)/2;
+  node.rowPositions = rowIds.map((pid,i)=>({id:pid, x: rowLeft + i + 0.5}));
   if(sbalenoDolu.has(node.id)) return;
-  let cursor = xLeft;
-  node.children.forEach(c => { priradXDescend(c, cursor); cursor += c.width; });
+  const deti = vsechnyDetiDescend(node);
+  const sirkaDeti = deti.reduce((s,c)=>s+c.width,0);
+  let cursor = xLeft + (node.width - sirkaDeti)/2;
+  node.unions.forEach(u => u.children.forEach(c => { priradXDescend(c, cursor); cursor += c.width; }));
 }
 
 function postavLayout(d){
@@ -660,12 +745,18 @@ const UNIT_W = 190, ROW_H = 130, CARD_W = 174, CARD_H = 54;
 function sberAscend(node, karty, cary, badge){
   if(!node) return;
   const y = -node.depth*ROW_H;
+  const extras = extraPartneriAscend(node);
+  const extraMapa = {}; extras.forEach(e => extraMapa[e.sid] = e);
+  const selfX = node.rowPositions.find(rp=>rp.id===node.id).x*UNIT_W;
   node.rowPositions.forEach(rp => {
+    const e = extraMapa[rp.id];
     karty.push({
       id: rp.id, x: rp.x*UNIT_W, y,
       maExpand: rp.id===node.id && (!!node.parents[0] || !!node.parents[1]) && !sbalenoNahoru.has(node.id),
-      extraUnions: rp.id===node.id ? node.extraUnions : []
+      extraUnions: [],
+      chip: e ? {pocet: e.pocetDeti} : null
     });
+    if(e) cary.push({typ:'union2', x1:selfX, x2:rp.x*UNIT_W, y}); // čárkovaný vedlejší svazek
   });
   if(sbalenoNahoru.has(node.id)){
     const skryto = pocetVsechOsobAscend(node.parents[0]) + pocetVsechOsobAscend(node.parents[1]);
@@ -691,28 +782,39 @@ function sberAscend(node, karty, cary, badge){
   sberAscend(wB, karty, cary, badge);
 }
 function sberDescend(node, karty, cary, badge, rodicUnionX, rodicUnionY){
-  const x = node.centerX*UNIT_W - (node.spouseId ? UNIT_W/2 : 0);
   const y = node.depth*ROW_H;
-  karty.push({id: node.id, x, y, maExpand: node.children.length>0 && !sbalenoDolu.has(node.id), extraUnions: node.extraUnions});
-  let vlastniUnionX = x;
-  if(node.spouseId){
-    const xSpouse = x+UNIT_W;
-    karty.push({id: node.spouseId, x: xSpouse, y, maExpand:false, extraUnions:[]});
-    cary.push({typ:'union', x1:x, x2:xSpouse, y});
-    vlastniUnionX = (x+xSpouse)/2;
-  }
-  if(rodicUnionX!=null) cary.push({typ:'vert', x1:rodicUnionX, y1:rodicUnionY, x2:x, y2:y});
+  const deti = vsechnyDetiDescend(node);
+  const poz = {}; node.rowPositions.forEach(rp => poz[rp.id] = rp.x*UNIT_W);
+  const xSelf = poz[node.id];
+  karty.push({id: node.id, x: xSelf, y,
+    maExpand: deti.length>0 && !sbalenoDolu.has(node.id), extraUnions: []});
+  // partneři v řadě + středy jednotlivých svazků (řetěz: osoba—p1—p2…)
+  let predchoziX = xSelf;
+  const unionMidy = [];
+  node.unions.forEach(u => {
+    if(u.spouseId){
+      const xs = poz[u.spouseId];
+      karty.push({id: u.spouseId, x: xs, y, maExpand:false, extraUnions:[]});
+      cary.push({typ:'union', x1:predchoziX, x2:xs, y});
+      unionMidy.push((predchoziX+xs)/2);
+      predchoziX = xs;
+    } else {
+      unionMidy.push(xSelf); // svazek s neznámým partnerem — děti visí přímo pod osobou
+    }
+  });
+  if(rodicUnionX!=null) cary.push({typ:'vert', x1:rodicUnionX, y1:rodicUnionY, x2:xSelf, y2:y});
 
   if(sbalenoDolu.has(node.id)){
-    const skryto = node.children.reduce((s,c)=>s+pocetVsechOsobDescend(c),0);
+    const skryto = deti.reduce((s,c)=>s+pocetVsechOsobDescend(c),0);
     if(skryto>0){
       const childY = y+ROW_H;
-      badge.push({typ:'dolu', id:node.id, x:vlastniUnionX, y:childY, pocet:skryto});
-      cary.push({typ:'vert', x1:vlastniUnionX, y1:y, x2:vlastniUnionX, y2:childY});
+      badge.push({typ:'dolu', id:node.id, x:xSelf, y:childY, pocet:skryto});
+      cary.push({typ:'vert', x1:xSelf, y1:y, x2:xSelf, y2:childY});
     }
     return;
   }
-  node.children.forEach(c => sberDescend(c, karty, cary, badge, vlastniUnionX, y));
+  node.unions.forEach((u,i) => u.children.forEach(c =>
+    sberDescend(c, karty, cary, badge, unionMidy[i], y)));
 }
 
 /* ---------- ořez dlouhých jmen, aby nepřetékala z karty (oprava 13.7.2026) ----------
@@ -779,6 +881,8 @@ function sestavObsahStromu(d, jeExport){
   cary.forEach(c=>{
     if(c.typ==='union'){
       vnitrek += `<line class="spojnice" x1="${c.x1}" y1="${c.y}" x2="${c.x2}" y2="${c.y}"/>`;
+    } else if(c.typ==='union2'){
+      vnitrek += `<line class="spojnice spojnice-vedlejsi" x1="${c.x1}" y1="${c.y}" x2="${c.x2}" y2="${c.y}"/>`;
     } else {
       const midY = (c.y1+c.y2)/2;
       vnitrek += `<path class="spojnice" d="M${c.x1},${c.y1} L${c.x1},${midY} L${c.x2},${midY} L${c.x2},${c.y2}"/>`;
@@ -810,9 +914,10 @@ function sestavObsahStromu(d, jeExport){
         <circle r="9"/><text y="4">−</text>
       </g>`;
     }
-    if(!jeExport && k.extraUnions && k.extraUnions.length>0){
-      vnitrek += `<g class="d-znacka" transform="translate(${CARD_W-12},4)" onclick="event.stopPropagation(); vyberOsobu('${k.id}', false)">
-        <circle r="9"/><text y="4">D</text>
+    if(k.chip){
+      const klikChip = jeExport ? '' : ` onclick="event.stopPropagation(); vyberOsobu('${k.id}', false)"`;
+      vnitrek += `<g class="d-znacka" transform="translate(${CARD_W-12},4)"${klikChip}>
+        <circle r="10"/><text y="4">+${k.chip.pocet}</text>
       </g>`;
     }
     vnitrek += `</g>`;
@@ -879,6 +984,9 @@ function exportovatPNG(){
     .karta-jmeno{ font-size:13px; fill:var(--tmava); }
     .karta-roky{ font-size:11px; fill:#6b6255; }
     .spojnice{ stroke:#8a7860; stroke-width:1.5; fill:none; }
+    .spojnice-vedlejsi{ stroke-dasharray:5 4; opacity:.75; }
+    .d-znacka circle{ fill:#c9781a; }
+    .d-znacka text{ font-size:10px; fill:#fff; text-anchor:middle; font-family:sans-serif; font-weight:bold; }
   `;
   const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="${bbox.w}" height="${bbox.h}" viewBox="${bbox.minX} ${bbox.minY} ${bbox.w} ${bbox.h}">
     <rect x="${bbox.minX}" y="${bbox.minY}" width="${bbox.w}" height="${bbox.h}" fill="#faf3e2"/>
@@ -1021,32 +1129,102 @@ function prepniDevSekci(){
   el.classList.toggle('otevreno');
 }
 
-// ---------- AUTOSAVE DO localStorage (havarijní kopie) ----------
+// ---------- AUTOSAVE — FÁZE 8 (19.7.2026): IndexedDB místo localStorage.
+// Důvod: přílohy (kroniky, PDF) zvětší soubor nad limit localStorage (~5 MB).
+// IndexedDB limit prakticky nemá. Starý localStorage záznam se umí přečíst
+// jako záloha (migrace), nové zápisy jdou už jen do IndexedDB. ----------
 const LS_KLIC = 'rodokmen_autosave_v1';
-function autosaveDoLocalStorage(){
-  try{
-    localStorage.setItem(LS_KLIC, JSON.stringify({data, ulozenoV: new Date().toISOString()}));
-  } catch(e){ console.warn('Autosave do localStorage selhal:', e); }
+const IDB_NAZEV = 'korenyRoduM68', IDB_STORE = 'kv', IDB_KLIC = 'autosave';
+function idbOtevri(){
+  return new Promise((res, rej)=>{
+    const r = indexedDB.open(IDB_NAZEV, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
 }
-function zkontrolujObnovuPriStartu(){
-  try{
-    const ulozeno = localStorage.getItem(LS_KLIC);
-    if(!ulozeno) return;
-    const parsed = JSON.parse(ulozeno);
-    if(!parsed || !parsed.data) return;
+async function idbUloz(hodnota){
+  const db = await idbOtevri();
+  return new Promise((res, rej)=>{
+    const t = db.transaction(IDB_STORE, 'readwrite');
+    t.objectStore(IDB_STORE).put(hodnota, IDB_KLIC);
+    t.oncomplete = res; t.onerror = () => rej(t.error);
+  });
+}
+async function idbNacti(){
+  const db = await idbOtevri();
+  return new Promise((res, rej)=>{
+    const t = db.transaction(IDB_STORE);
+    const q = t.objectStore(IDB_STORE).get(IDB_KLIC);
+    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+  });
+}
+function autosaveDoLocalStorage(){ // název ponechán kvůli volajícím; uvnitř už IndexedDB
+  if(!uvitaniVyrizeno) return; // neškrábat havarijní kopii, dokud běží uvítání
+  idbUloz({data, ulozenoV: new Date().toISOString()})
+    .catch(e => console.warn('Autosave do IndexedDB selhal:', e));
+}
+/* ---------- UVÍTACÍ OBRAZOVKA (19.7.2026, plán §7.7) ----------
+   Nahrazuje dřívější confirm() dialog obnovy. Autosave se navíc NEZAPISUJE,
+   dokud uživatel nevybere start — dřív hrozilo, že klikání v testovacích
+   datech potichu přepíše havarijní kopii rozpracovaného rodokmenu. */
+let uvitaniVyrizeno = false;
+async function zkontrolujObnovuPriStartu(){
+  const overlay = document.getElementById('uvitani');
+  overlay.classList.remove('skryto'); // ukázat hned, tlačítko obnovy se případně doplní
+  let parsed = null;
+  try{ parsed = await idbNacti(); } catch(e){ console.warn('Čtení IndexedDB selhalo:', e); }
+  if(!parsed){
+    try{ // migrace ze staré localStorage verze
+      const ls = localStorage.getItem(LS_KLIC);
+      if(ls) parsed = JSON.parse(ls);
+    } catch(e){}
+  }
+  if(parsed && parsed.data && !uvitaniVyrizeno){
     const datumText = new Date(parsed.ulozenoV).toLocaleString('cs-CZ');
-    const chce = confirm('Našel jsem rozpracovanou verzi rodokmenu z předchozí návštěvy (uloženo '+datumText+'). Obnovit ji místo výchozích testovacích dat?');
-    if(chce){
-      data = parsed.data;
-      historieUndo = []; historieRedo = [];
-      prekresliVse();
-      oznacNeulozeno(); // je to obnovená rozpracovaná verze, ne čerstvě uložený soubor
-    }
-  } catch(e){ console.warn('Obnova z localStorage selhala:', e); }
+    document.getElementById('uvitaniObnova').innerHTML =
+      `<div class="uvitani-obnova">🕘 Mám rozpracovanou verzi z minula (${datumText}).</div>
+       <button onclick="uvitaniObnovit()">↩️ Pokračovat v rozpracované verzi</button>`;
+    window._uvitaniAutosave = parsed.data;
+  }
+}
+function zavriUvitani(){
+  uvitaniVyrizeno = true;
+  document.getElementById('uvitani').classList.add('skryto');
+}
+function uvitaniObnovit(){
+  data = window._uvitaniAutosave;
+  historieUndo = []; historieRedo = [];
+  zavriUvitani();
+  prekresliVse();
+  oznacNeulozeno();
+}
+function uvitaniOtevrit(){ zavriUvitani(); otevritSoubor(); }
+function uvitaniUkazka(){ zavriUvitani(); }
+function uvitaniNovy(){
+  data = {
+    meta:{ verze:1, nazev:"Můj rodokmen", koren:"s001",
+           upraveno: new Date().toISOString().slice(0,10) },
+    osoby:{
+      p001:{jmeno:"Jméno", prijmeni:"Příjmení", rodnePrijmeni:null,
+        narozeni:{datum:null, misto:null, presnost:"rok"}, umrti:null,
+        pohlavi:"z", foto:null, poznamka:"", detaily:[]},
+      p002:{jmeno:"Jméno", prijmeni:"Příjmení", rodnePrijmeni:null,
+        narozeni:{datum:null, misto:null, presnost:"rok"}, umrti:null,
+        pohlavi:"m", foto:null, poznamka:"", detaily:[]}
+    },
+    svazky:[ {id:"s001", partneri:["p001","p002"], deti:[], typ:"manželství", od:null} ]
+  };
+  historieUndo = []; historieRedo = [];
+  zavriUvitani();
+  panInicializovan = false;
+  prekresliVse();
+  vyberOsobu('p001', false); // rovnou otevřít editaci první osoby
 }
 
 // ---------- OTEVŘÍT / ULOŽIT ----------
 function nacistData(noveData){
+  uvitaniVyrizeno = true;
   data = noveData;
   historieUndo = []; historieRedo = [];
   vybraneOsoby = new Set();
@@ -1137,6 +1315,128 @@ function vypocitejRozmeryFota(sirka, vyska, maxStrana){
   } else {
     return {w: Math.round(sirka * maxStrana / vyska), h: maxStrana};
   }
+}
+
+/* ---------- FÁZE 8 (19.7.2026): PŘÍLOHY (kroniky, dokumenty) ----------
+   Moničino přání: ukládat screenshoty z kronik, stažené dokumenty apod.
+   Obrázky se zmenší na max 1400 px (čitelný text kroniky), JPEG 0.82.
+   PDF a ostatní soubory se ukládají beze změny (limit 10 MB/soubor).
+   Vše žije v jednom JSON souboru — princip "jeden soubor = celý rodokmen"
+   zůstává. Autosave proto běží přes IndexedDB (viz výše). */
+const PRILOHA_MAX_PX = 1400, PRILOHA_MAX_MB = 10;
+function zajistiPrilohy(o){ if(!Array.isArray(o.prilohy)) o.prilohy = []; return o.prilohy; }
+function novaPrilohaId(){ return 'a' + Date.now() + Math.floor(Math.random()*1000); }
+function velikostDataUrl(dataUrl){ // odhad bajtů z base64 části
+  const i = dataUrl.indexOf(','); if(i<0) return 0;
+  return Math.round((dataUrl.length - i - 1) * 3 / 4);
+}
+function hezkaVelikost(b){
+  if(b < 1024*1024) return Math.max(1, Math.round(b/1024)) + ' kB';
+  return (b/1024/1024).toFixed(1) + ' MB';
+}
+function zpracujPrilohu(id, file){
+  if(!file) return;
+  if(file.size > PRILOHA_MAX_MB*1024*1024){
+    alert('Soubor je větší než '+PRILOHA_MAX_MB+' MB — to by rodokmen neúnosně nafouklo. Zmenši ho prosím (např. ulož PDF v nižší kvalitě) a zkus znovu.');
+    return;
+  }
+  const jeObrazek = file.type && file.type.startsWith('image/');
+  const reader = new FileReader();
+  reader.onload = function(e){
+    if(jeObrazek){
+      const img = new Image();
+      img.onload = function(){
+        const roz = vypocitejRozmeryFota(img.width, img.height, PRILOHA_MAX_PX);
+        const canvas = document.createElement('canvas');
+        canvas.width = roz.w; canvas.height = roz.h;
+        canvas.getContext('2d').drawImage(img, 0, 0, roz.w, roz.h);
+        ulozPrilohu(id, file.name, 'image/jpeg', canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = function(){ alert('Obrázek se nepodařilo načíst.'); };
+      img.src = e.target.result;
+    } else {
+      ulozPrilohu(id, file.name, file.type || 'application/octet-stream', e.target.result);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+function ulozPrilohu(id, nazev, mime, dataUrl){
+  ulozUndoBod();
+  zajistiPrilohy(data.osoby[id]).push({
+    id: novaPrilohaId(), nazev, mime, popis: '',
+    data: dataUrl, pridano: new Date().toISOString().slice(0,10)
+  });
+  prekresliVse();
+  vykresliDetail(id);
+}
+function smazatPrilohu(osobaId, prilohaId){
+  if(!confirm('Opravdu odstranit tuto přílohu?')) return;
+  ulozUndoBod();
+  const o = data.osoby[osobaId];
+  o.prilohy = (o.prilohy||[]).filter(p => p.id !== prilohaId);
+  prekresliVse();
+  vykresliDetail(osobaId);
+}
+function ulozPopisPrilohy(osobaId, prilohaId, text){
+  const p = (data.osoby[osobaId].prilohy||[]).find(x => x.id === prilohaId);
+  if(!p || p.popis === text) return;
+  ulozUndoBod();
+  p.popis = text;
+  oznacNeulozeno();
+  autosaveDoLocalStorage();
+}
+function stahnoutPrilohu(osobaId, prilohaId){
+  const p = (data.osoby[osobaId].prilohy||[]).find(x => x.id === prilohaId);
+  if(!p) return;
+  const a = document.createElement('a');
+  a.href = p.data; a.download = p.nazev || 'priloha';
+  a.click();
+}
+function otevriLightbox(osobaId, prilohaId){
+  const p = (data.osoby[osobaId].prilohy||[]).find(x => x.id === prilohaId);
+  if(!p) return;
+  document.getElementById('lightboxObsah').innerHTML =
+    `<img src="${p.data}" alt="">` +
+    (p.popis ? `<div class="lightbox-popis">${escHtml(p.popis)}</div>` : '');
+  document.getElementById('lightbox').classList.add('otevreno');
+}
+function zavriLightbox(){ document.getElementById('lightbox').classList.remove('otevreno'); }
+function vykresliPrilohy(id){
+  const prilohy = data.osoby[id].prilohy || [];
+  let html = `<h3 style="margin-top:0;">📎 Materiály (kroniky, dokumenty)</h3>`;
+  if(prilohy.length === 0){
+    html += `<div style="font-size:12px; color:#8a8071; margin-bottom:6px;">Zatím žádné materiály.</div>`;
+  }
+  prilohy.forEach(p => {
+    const jeObr = (p.mime||'').startsWith('image/');
+    const nahled = jeObr
+      ? `<img src="${p.data}" onclick="otevriLightbox('${id}','${p.id}')" style="width:62px; height:62px; object-fit:cover; border-radius:6px; cursor:zoom-in; flex:none;">`
+      : `<div onclick="stahnoutPrilohu('${id}','${p.id}')" style="width:62px; height:62px; flex:none; display:flex; align-items:center; justify-content:center; font-size:28px; background:#efe7d6; border-radius:6px; cursor:pointer;">${(p.mime||'').includes('pdf')?'📕':'📄'}</div>`;
+    html += `<div class="priloha-radek">
+      ${nahled}
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:12px; word-break:break-all;"><b>${escHtml(p.nazev||'bez názvu')}</b> · ${hezkaVelikost(velikostDataUrl(p.data))} · ${escHtml(p.pridano||'')}</div>
+        <input value="${escAttr(p.popis||'')}" placeholder="Popisek (např. Kronika obce, str. 42)"
+               onchange="ulozPopisPrilohy('${id}','${p.id}', this.value)"
+               style="margin-top:4px; font-size:12px;">
+        <div style="margin-top:4px;">
+          <button class="sec" style="font-size:11px; padding:3px 8px;" onclick="stahnoutPrilohu('${id}','${p.id}')">⬇ Stáhnout</button>
+          <button class="sec" style="font-size:11px; padding:3px 8px;" onclick="smazatPrilohu('${id}','${p.id}')">🗑 Odstranit</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `<div id="pf_priloha_drop"
+       ondragover="event.preventDefault(); this.style.background='#f3ecd9';"
+       ondragleave="this.style.background='';"
+       ondrop="event.preventDefault(); this.style.background=''; for(const f of event.dataTransfer.files) zpracujPrilohu('${id}', f);"
+       onclick="document.getElementById('pf_priloha_input').click();"
+       style="border:2px dashed var(--linka); border-radius:8px; padding:10px; text-align:center; cursor:pointer; font-size:12px; color:#8a8071; margin-top:8px;">
+    ➕ Klikni nebo sem přetáhni obrázek / PDF / soubor (obrázky se samy zmenší)
+  </div>
+  <input type="file" id="pf_priloha_input" multiple style="display:none"
+         onchange="for(const f of this.files) zpracujPrilohu('${id}', f); this.value='';">`;
+  return html;
 }
 
 function zpracujFoto(id, file){
@@ -1247,6 +1547,9 @@ function vykresliDetail(id){
     ${vykresliSvazkyOsoby(id)}
 
     <hr style="margin:18px 0; border:none; border-top:1px solid var(--linka);">
+    ${vykresliPrilohy(id)}
+
+    <hr style="margin:18px 0; border:none; border-top:1px solid var(--linka);">
     <h3>Přidat vztah</h3>
     <div>
       <button class="sec" onclick="zobrazFormularPridani('${id}','partner')">+ Partner</button>
@@ -1344,6 +1647,17 @@ function ulozitNovouOsobu(id, typ, svazekId){
   const pohlavi = document.getElementById('npf_pohlavi').value;
   const rok = document.getElementById('npf_rok').value.trim();
   if(!jmeno || !prijmeni){ alert('Vyplň prosím jméno i příjmení.'); return; }
+  // obranné kontroly 19.7.2026 (audit): stav se mohl změnit (např. Ctrl+Z)
+  // mezi otevřením formuláře a kliknutím na Přidat
+  if(typ==='sourozenec' && !najdiRodicovskySvazek(data, id)){
+    alert('Osoba už nemá zapsané rodiče (možná vrácení změny) — sourozence teď nejde přidat.'); return;
+  }
+  if(typ==='rodic'){
+    const rsK = najdiRodicovskySvazek(data, id);
+    if(rsK && rsK.partneri.filter(Boolean).length>=2){
+      alert('Osoba už má oba rodiče zapsané.'); return;
+    }
+  }
   ulozUndoBod();
 
   const novyId = novaOsobaId();
