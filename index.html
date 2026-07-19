@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
 <title>KoŘeny rodu — M68</title>
 <style>
   /* VYŘEŠENO fáze 7 (13.7.2026): kontrast písma zvýšen (tmavší --tmava/--akcent,
@@ -15,8 +16,15 @@
   /* VYŘEŠENO fáze 7 (13.7.2026): "🗑️ Smazat osobu" doplněno do detail panelu,
      napojeno na undo historii a chráněno proti smazání kořenového páru. */
   :root{
-    --papir:#faf6ee; --tmava:#2e2620; --linka:#c9bfa8; --akcent:#7a5d3d;
-    --muz:#5c7a99; --zena:#a8677c; --bronz:#A16F44; --bronz-tmavy:#7d5433;
+    color-scheme: dark;
+    --papir:#211c15;        /* pozadí stránky — tmavě hnědá */
+    --panel:#2c261d;        /* panely */
+    --tmava:#e8dec6;        /* hlavní text — krémová */
+    --linka:#4d4232;        /* linky a rámečky */
+    --akcent:#c98e52;       /* měď/bronz — akcenty a nadpisy */
+    --muz:#7fa3c4; --zena:#cf8ba0;
+    --bronz:#b07a42; --bronz-tmavy:#5e4023;
+    --oliva:#6b6a45;        /* olivově zelená pro sekundární prvky */
   }
   *{box-sizing:border-box;}
   body{
@@ -27,7 +35,7 @@
   h1{font-size:22px; margin-bottom:4px;}
   .podtitul{color:var(--akcent); font-size:14px; margin-bottom:20px;}
   .panel{
-    background:#fff; border:1px solid var(--linka); border-radius:8px;
+    background:var(--panel); border:1px solid var(--linka); border-radius:8px;
     padding:16px 20px; margin-bottom:18px;
   }
   .panel h2{font-size:16px; margin:0 0 10px 0; border-bottom:1px solid var(--linka); padding-bottom:6px;}
@@ -38,34 +46,35 @@
     border-radius:6px; padding:8px 14px; cursor:pointer; font-size:13px; margin-right:8px;
   }
   button:hover{opacity:.88;}
-  button.sec{background:#efe7d6; color:var(--tmava);}
+  button{background:linear-gradient(180deg, #c08a4d, #8a5a2f); box-shadow:0 1px 2px rgba(0,0,0,.4);}
+  button.sec{background:#3b3428; color:var(--tmava); box-shadow:none; border:1px solid var(--linka);}
   button.btn-rozbalit{background:#2f6249; color:#fff;}
   button.btn-sbalit{background:#8a441f; color:#fff;}
   button.btn-smazat{background:#a33; color:#fff;}
   table{width:100%; border-collapse:collapse; font-size:13px;}
-  th,td{text-align:left; padding:5px 8px; border-bottom:1px solid #eee;}
+  th,td{text-align:left; padding:5px 8px; border-bottom:1px solid #3a3327;}
   th{color:var(--akcent); font-weight:normal; border-bottom:2px solid var(--linka);}
-  tr:hover{background:#f8f4ea;}
+  tr:hover{background:#352e22;}
   .zena-rad{border-left:3px solid var(--zena);}
   .muz-rad{border-left:3px solid var(--muz);}
-  .zemrel{color:#666;}
+  .zemrel{color:#9a8f7c;}
   .pill{
     display:inline-block; font-size:11px; padding:1px 7px; border-radius:10px;
-    background:#efe7d6; color:var(--akcent); margin-left:6px;
+    background:#3b3428; color:var(--akcent); margin-left:6px;
   }
-  .pill.varovani{background:#f7dede; color:#a33;}
-  .pill.ok{background:#dcefe0; color:#2a7a45;}
+  .pill.varovani{background:#4a2828; color:#e8a0a0;}
+  .pill.ok{background:#28402e; color:#8fce9f;}
   #jsonView{
     width:100%; height:340px; font-family:monospace; font-size:12px;
     background:#2b2620; color:#e8dfca; border:none; border-radius:6px; padding:12px;
     display:none;
   }
   .kontrola-radek{padding:4px 0; font-size:13px;}
-  .generace-nadpis{background:#f2ead9; font-weight:bold;}
+  .generace-nadpis{background:#38311f; font-weight:bold;}
 
   /* ---------- HLAVIČKA (fáze 7) ---------- */
   header.hlavicka{
-    background:linear-gradient(135deg, var(--bronz-tmavy), var(--bronz));
+    background:linear-gradient(135deg, #2a1d10 0%, #5e4023 45%, #7d5433 55%, #3a2916 100%);
     margin:0 -24px 20px; padding:18px 24px;
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
     border-bottom:3px solid var(--bronz-tmavy);
@@ -95,23 +104,26 @@
   #stromWrap{
     width:100%; overflow:hidden; border-radius:6px;
     height:560px; position:relative; touch-action:none;
-    background-color:#efe3c8;
+    background-color:#3d3827;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.42 0 0 0 0 0.28 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.35), inset 0 0 60px rgba(0,0,0,.25);
   }
-  .karta-obdelnik{ fill:#fffdf7; stroke-width:2; rx:8; }
+  .karta-obdelnik{ fill:#f2e8d2; stroke-width:2; rx:8; }
   .karta-obdelnik.muz{ stroke:var(--muz); }
   .karta-obdelnik.zena{ stroke:var(--zena); }
-  .karta-obdelnik.zemrely{ fill:#efe8d8; opacity:.78; }
-  .karta-jmeno{ font-family:"Georgia",serif; font-size:13px; fill:var(--tmava); }
-  .karta-roky{ font-family:"Georgia",serif; font-size:11px; fill:#6b6255; }
-  .spojnice{ stroke:#8a7860; stroke-width:1.5; fill:none; }
+  .karta-obdelnik.zemrely{ fill:#d6cbb2; opacity:.82; }
+  .karta-jmeno{ font-family:"Georgia",serif; font-size:13px; fill:#2e2620; }
+  .karta-roky{ font-family:"Georgia",serif; font-size:11px; fill:#5d5546; }
+  .spojnice{ stroke:#a8946f; stroke-width:1.5; fill:none; }
   .spojnice-vedlejsi{ stroke-dasharray:5 4; opacity:.75; }
+  .badge-vedlejsi{ cursor:pointer; }
+  .badge-vedlejsi rect{ fill:#c9781a; opacity:.92; }
+  .badge-vedlejsi text{ fill:#fff; font-size:12px; text-anchor:middle; font-family:sans-serif; font-weight:bold; }
   .limit-box{
-    background:#fbf1e4; border:1px solid #e3cfa0; border-radius:6px;
+    background:#332c21; border:1px solid #55482f; border-radius:6px;
     padding:10px 14px; font-size:13px; margin-top:12px;
   }
-  tr.zvyrazneno-radek{ background:#fdf0d0 !important; }
+  tr.zvyrazneno-radek{ background:#4a3c1c !important; }
   .karta-obdelnik.zvyrazneno{ stroke:#c9781a; stroke-width:3.5; }
   .toggle-ikona{ cursor:pointer; user-select:none; }
   .toggle-ikona circle{ fill:#8a441f; stroke:#8a441f; stroke-width:1.5; }
@@ -133,20 +145,20 @@
 
   /* ---------- PATIČKA ---------- */
   footer.paticka{
-    text-align:center; font-size:12px; color:#9a8f7c;
+    text-align:center; font-size:12px; color:#8a7c62;
     padding:18px 0 6px; margin-top:6px;
   }
 
   /* ---------- FÁZE 4: boční detail panel ---------- */
   #detailOverlay{
-    position:fixed; inset:0; background:rgba(58,49,40,.08);
+    position:fixed; inset:0; background:rgba(0,0,0,.35);
     display:none; z-index:40;
   }
   #detailOverlay.otevreno{ display:block; }
   #detailPanel{
     position:fixed; top:0; right:0; width:380px; max-width:92vw; height:100vh;
-    background:#fffdf8; border-left:1px solid var(--linka);
-    box-shadow:-6px 0 18px rgba(0,0,0,.12);
+    background:#2c261d; border-left:1px solid var(--linka);
+    box-shadow:-6px 0 24px rgba(0,0,0,.5);
     transform:translateX(100%); transition:transform .22s ease;
     z-index:50; overflow-y:auto; padding:20px;
   }
@@ -154,13 +166,13 @@
   #detailPanel label{ display:block; font-size:12px; color:var(--akcent); margin-top:10px; margin-bottom:3px; }
   #detailPanel input, #detailPanel select, #detailPanel textarea{
     width:100%; padding:7px 9px; border:1px solid var(--linka); border-radius:6px;
-    font-family:inherit; font-size:13px; background:#fff; color:var(--tmava);
+    font-family:inherit; font-size:13px; background:#3b3428; color:var(--tmava);
   }
   #detailPanel h2{ font-size:18px; margin:0; }
   #detailPanel h3{ font-size:13px; color:var(--akcent); margin:0 0 8px 0; }
-  .svazek-box{ margin-bottom:8px; padding:8px 10px; background:#f8f4ea; border-radius:6px; font-size:13px; }
-  .pridat-box{ margin-top:10px; padding:10px; background:#fbf1e4; border-radius:6px; }
-  .priloha-radek{ display:flex; gap:10px; align-items:flex-start; padding:8px; background:#f8f4ea; border-radius:8px; margin-bottom:8px; }
+  .svazek-box{ margin-bottom:8px; padding:8px 10px; background:#352e22; border-radius:6px; font-size:13px; }
+  .pridat-box{ margin-top:10px; padding:10px; background:#38301f; border-radius:6px; }
+  .priloha-radek{ display:flex; gap:10px; align-items:flex-start; padding:8px; background:#352e22; border-radius:8px; margin-bottom:8px; }
   #lightbox{
     position:fixed; inset:0; z-index:200; background:rgba(20,16,12,.88);
     display:none; align-items:center; justify-content:center; cursor:zoom-out;
@@ -182,13 +194,13 @@
   }
   .uvitani-okno h2{
     font-family:"Palatino Linotype","Book Antiqua",Georgia,serif;
-    font-size:24px; margin:0 0 6px; color:var(--bronz-tmavy); border:none;
+    font-size:24px; margin:0 0 6px; color:var(--akcent); border:none;
   }
   .uvitani-okno .uvitani-text{ font-size:14px; color:var(--tmava); margin:14px 0 20px; text-align:left; line-height:1.6; }
   .uvitani-okno button{ display:block; width:100%; margin:8px 0 0; padding:12px; font-size:15px; }
   .uvitani-okno button.sec{ font-size:13px; }
   .uvitani-obnova{
-    background:#fdf0d0; border:1px solid #e3cfa0; border-radius:8px;
+    background:#3d3115; border:1px solid #6b5426; border-radius:8px;
     padding:10px 12px; font-size:13px; margin-bottom:6px; text-align:left;
   }
 </style>
@@ -223,10 +235,14 @@
   <h2>Strom</h2>
   <div class="lista-ovladani">
     <button onclick="domu()">🏠 Domů</button>
+    <button onclick="naKoren()">🎯 Na kořen</button>
+    <span style="white-space:nowrap;">🔍 <input id="hledani" placeholder="Najít osobu…" style="width:150px; font-size:13px; padding:5px 8px;"
+      oninput="hledejOsobu(this.value)"></span>
+    <span id="hledaniVysledek" style="font-size:12px; color:var(--akcent);"></span>
     <button class="btn-rozbalit" onclick="rozbalitVse()">Rozbalit vše</button>
     <button class="btn-sbalit" onclick="sbalitVse()">Sbalit vše</button>
     <button class="sec" onclick="exportovatPNG()">🖼️ Export PNG</button>
-    <span style="font-size:12px; margin-left:8px;">Klik na kartu = detail a editace, tažení/prst = posun, kolečko/sevření prstů = zoom, − na kartě = sbalit větev, čárkovaná linka = další sňatek, „+N" na kartě partnera = děti z něj (klik = detail)</span>
+    <span style="font-size:12px; margin-left:8px;">Klik na kartu = detail a editace, tažení/prst = posun, kolečko/sevření prstů = zoom, − na kartě = sbalit větev, čárkovaná linka = další sňatek, oranžový štítek „+N dětí" pod partnerem = děti z dalšího sňatku (klik = detail)</span>
   </div>
   <div id="stromWrap"></div>
   <div id="prekryvVysledek" style="margin-top:10px; font-size:13px;"></div>
@@ -614,17 +630,21 @@ let vybraneOsoby = new Set();
 let vybranySvazekId = null;
 let pan = {x:0, y:0, scale:1};
 let panInicializovan = false;
+let posledniKarty = [];
 let posledniBBox = null;
 
 // --- ASCEND (předci) ---
-function buildAncestorNode(d, personId, depth){
+function buildAncestorNode(d, personId, depth, strana){
   if(!personId) return null;
-  const node = {id: personId, depth, parents:[null,null], siblings:[], extraUnions:[]};
+  // strana: 'A' = levá polovina páru, 'B' = pravá — určuje, kam se kreslí
+  // sourozenci a vedlejší partneři (vždy na VNĚJŠÍ stranu; oprava 19.7.2026
+  // po testu Myrdy: druhá manželka se vkládala MEZI kořenový pár)
+  const node = {id: personId, depth, strana: strana||'B', parents:[null,null], siblings:[], extraUnions:[]};
   const pu = najdiRodicovskySvazek(d, personId);
   if(pu){
-    node.parents = [pu.partneri[0]||null, pu.partneri[1]||null].map(pid => {
+    node.parents = [pu.partneri[0]||null, pu.partneri[1]||null].map((pid,ix) => {
       if(!pid) return null;
-      const rodicNode = buildAncestorNode(d, pid, depth+1);
+      const rodicNode = buildAncestorNode(d, pid, depth+1, ix===0?'A':'B');
       // vedlejší svazky rodiče (jiné než ten, co vede k naší osobě) — pro "D" značku
       rodicNode.extraUnions = najdiSvazkyJakoPartner(d, pid).filter(u => u.id !== pu.id);
       return rodicNode;
@@ -664,8 +684,14 @@ function priradXAscend(node, xLeft){
   if(!node) return;
   node.left = xLeft;
   const extras = extraPartneriAscend(node);
-  const row = [node.id, ...extras.map(e=>e.sid), ...node.siblings];
-  const rowLeft = xLeft + (node.width - row.length)/2;
+  // vnější strana: levá osoba páru má vedlejší partnery i sourozence VLEVO,
+  // pravá VPRAVO — pár tak zůstává pohromadě a vedlejší větev míří ven
+  const row = node.strana === 'A'
+    ? [...node.siblings.slice().reverse(), ...extras.map(e=>e.sid).reverse(), node.id]
+    : [node.id, ...extras.map(e=>e.sid), ...node.siblings];
+  // kotvení k vnitřní hraně slotu (A doprava, B doleva) → partneři páru
+  // sedí vedle sebe na každé úrovni, vedlejší větve míří ven
+  const rowLeft = node.strana === 'A' ? xLeft + node.width - row.length : xLeft;
   node.rowPositions = row.map((id,i) => ({id, x: rowLeft + i + 0.5}));
   node.centerX = xLeft + node.width/2;
   if(sbalenoNahoru.has(node.id)) return;
@@ -721,8 +747,8 @@ function priradXDescend(node, xLeft){
 function postavLayout(d){
   const rootUnion = d.svazky.find(s => s.id === d.meta.koren);
   const [idA, idB] = rootUnion.partneri;
-  const ascendA = buildAncestorNode(d, idA, 0);
-  const ascendB = buildAncestorNode(d, idB, 0);
+  const ascendA = buildAncestorNode(d, idA, 0, 'A');
+  const ascendB = buildAncestorNode(d, idB, 0, 'B');
   ascendA.extraUnions = najdiSvazkyJakoPartner(d, idA).filter(u => u.id !== rootUnion.id);
   ascendB.extraUnions = najdiSvazkyJakoPartner(d, idB).filter(u => u.id !== rootUnion.id);
   sirkaAscend(ascendA); sirkaAscend(ascendB);
@@ -753,10 +779,15 @@ function sberAscend(node, karty, cary, badge){
     karty.push({
       id: rp.id, x: rp.x*UNIT_W, y,
       maExpand: rp.id===node.id && (!!node.parents[0] || !!node.parents[1]) && !sbalenoNahoru.has(node.id),
-      extraUnions: [],
-      chip: e ? {pocet: e.pocetDeti} : null
+      extraUnions: []
     });
-    if(e) cary.push({typ:'union2', x1:selfX, x2:rp.x*UNIT_W, y}); // čárkovaný vedlejší svazek
+    if(e){
+      cary.push({typ:'union2', x1:selfX, x2:rp.x*UNIT_W, y}); // čárkovaný vedlejší svazek
+      if(e.pocetDeti > 0){ // děti vedlejšího svazku — odbočka vyvedená pod kartu
+        badge.push({typ:'vedlejsi', id:rp.id, x:rp.x*UNIT_W, y:y+96, pocet:e.pocetDeti});
+        cary.push({typ:'vert2', x1:rp.x*UNIT_W, y1:y+CARD_H/2, x2:rp.x*UNIT_W, y2:y+84});
+      }
+    }
   });
   if(sbalenoNahoru.has(node.id)){
     const skryto = pocetVsechOsobAscend(node.parents[0]) + pocetVsechOsobAscend(node.parents[1]);
@@ -883,6 +914,8 @@ function sestavObsahStromu(d, jeExport){
       vnitrek += `<line class="spojnice" x1="${c.x1}" y1="${c.y}" x2="${c.x2}" y2="${c.y}"/>`;
     } else if(c.typ==='union2'){
       vnitrek += `<line class="spojnice spojnice-vedlejsi" x1="${c.x1}" y1="${c.y}" x2="${c.x2}" y2="${c.y}"/>`;
+    } else if(c.typ==='vert2'){
+      vnitrek += `<line class="spojnice spojnice-vedlejsi" x1="${c.x1}" y1="${c.y1}" x2="${c.x2}" y2="${c.y2}"/>`;
     } else {
       const midY = (c.y1+c.y2)/2;
       vnitrek += `<path class="spojnice" d="M${c.x1},${c.y1} L${c.x1},${midY} L${c.x2},${midY} L${c.x2},${c.y2}"/>`;
@@ -914,17 +947,18 @@ function sestavObsahStromu(d, jeExport){
         <circle r="9"/><text y="4">−</text>
       </g>`;
     }
-    if(k.chip){
-      const klikChip = jeExport ? '' : ` onclick="event.stopPropagation(); vyberOsobu('${k.id}', false)"`;
-      vnitrek += `<g class="d-znacka" transform="translate(${CARD_W-12},4)"${klikChip}>
-        <circle r="10"/><text y="4">+${k.chip.pocet}</text>
-      </g>`;
-    }
+
     vnitrek += `</g>`;
   });
 
   if(!jeExport){
     badge.forEach(b=>{
+      if(b.typ==='vedlejsi'){
+        vnitrek += `<g class="badge-vedlejsi" transform="translate(${b.x-38},${b.y-13})" onclick="vyberOsobu('${b.id}', false)">
+          <rect width="76" height="26" rx="13"/><text x="38" y="17">+${b.pocet} ${b.pocet===1?'dítě':(b.pocet<5?'děti':'dětí')}</text>
+        </g>`;
+        return;
+      }
       const fn = b.typ==='nahoru' ? 'toggleNahoru' : 'toggleDolu';
       vnitrek += `<g class="badge-sbaleno" transform="translate(${b.x-30},${b.y-14})" onclick="${fn}('${b.id}')">
         <rect width="60" height="28" rx="14"/><text x="30" y="18">+${b.pocet}</text>
@@ -938,6 +972,7 @@ function sestavObsahStromu(d, jeExport){
 function vykresliStrom(d){
   const {vnitrek, bbox, karty} = sestavObsahStromu(d, false);
   posledniBBox = bbox;
+  posledniKarty = karty;
 
   const kolize = zkontrolujPrekryvy(karty);
   let hlaska = kolize.length===0
@@ -985,8 +1020,8 @@ function exportovatPNG(){
     .karta-roky{ font-size:11px; fill:#6b6255; }
     .spojnice{ stroke:#8a7860; stroke-width:1.5; fill:none; }
     .spojnice-vedlejsi{ stroke-dasharray:5 4; opacity:.75; }
-    .d-znacka circle{ fill:#c9781a; }
-    .d-znacka text{ font-size:10px; fill:#fff; text-anchor:middle; font-family:sans-serif; font-weight:bold; }
+    .badge-vedlejsi rect{ fill:#c9781a; opacity:.92; }
+    .badge-vedlejsi text{ fill:#fff; font-size:12px; text-anchor:middle; font-family:sans-serif; font-weight:bold; }
   `;
   const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" width="${bbox.w}" height="${bbox.h}" viewBox="${bbox.minX} ${bbox.minY} ${bbox.w} ${bbox.h}">
     <rect x="${bbox.minX}" y="${bbox.minY}" width="${bbox.w}" height="${bbox.h}" fill="#faf3e2"/>
@@ -1025,6 +1060,43 @@ function domu(){
   pan.x = 500 - pan.scale*(minX + w/2);
   pan.y = 280 - pan.scale*(minY + h/2);
   aplikujTransform();
+}
+function vycentrujNaKartu(k){
+  pan.scale = Math.max(pan.scale, 0.9); // ať je výsledek čitelný
+  pan.x = 500 - pan.scale*(k.x + 87);   // střed karty (CARD_W/2)
+  pan.y = 280 - pan.scale*(k.y + 27);
+  aplikujTransform();
+}
+function naKoren(){
+  const ru = data.svazky.find(s=>s.id===data.meta.koren);
+  const k = (posledniKarty||[]).find(x => ru.partneri.includes(x.id));
+  if(k) vycentrujNaKartu(k);
+}
+function hledejOsobu(text){
+  const q = (text||'').trim().toLowerCase();
+  const vysledek = document.getElementById('hledaniVysledek');
+  if(q.length < 2){ vysledek.textContent = ''; return; }
+  const shody = Object.entries(data.osoby).filter(([id,o]) =>
+    ((o.jmeno||'')+' '+(o.prijmeni||'')+' '+(o.rodnePrijmeni||'')).toLowerCase().includes(q));
+  if(!shody.length){ vysledek.textContent = 'Nikdo nenalezen.'; return; }
+  const [id, o] = shody[0];
+  vysledek.textContent = shody.length===1
+    ? `Nalezeno: ${o.jmeno||''} ${o.prijmeni||''}`
+    : `${shody.length} shod — zobrazuji: ${o.jmeno||''} ${o.prijmeni||''}`;
+  let k = (posledniKarty||[]).find(x => x.id === id);
+  if(!k){ // osoba je ve sbalené větvi → rozbalit vše a zkusit znovu
+    sbalenoNahoru.clear(); sbalenoDolu.clear();
+    vykresliStrom(data);
+    k = (posledniKarty||[]).find(x => x.id === id);
+  }
+  if(k){
+    vybraneOsoby = new Set([id]);
+    vykresliStrom(data);
+    oznacRadekOsoby(id);
+    vycentrujNaKartu(k);
+  } else {
+    vysledek.textContent += ' (osoba není ve stromu — otevři ji z tabulky)';
+  }
 }
 function toggleNahoru(id){ sbalenoNahoru.has(id) ? sbalenoNahoru.delete(id) : sbalenoNahoru.add(id); vykresliStrom(data); }
 function toggleDolu(id){ sbalenoDolu.has(id) ? sbalenoDolu.delete(id) : sbalenoDolu.add(id); vykresliStrom(data); }
@@ -1243,7 +1315,12 @@ async function otevritSoubor(){
       });
       aktualniFileHandle = handle;
       const soubor = await handle.getFile();
-      nacistData(JSON.parse(await soubor.text()));
+      const text = await soubor.text();
+      if(!text.trim()){
+        alert('Soubor je prázdný. Pokud ho vybíráš přímo z aplikace Google Disk, není možná stažený v zařízení — otevři Disk, u souboru zvol „Zpřístupnit offline" (nebo ho stáhni do Stažených) a zkus to znovu.');
+        return;
+      }
+      nacistData(JSON.parse(text));
     } catch(e){
       if(e.name!=='AbortError') alert('Otevření souboru se nepovedlo: '+e.message);
     }
@@ -1256,7 +1333,13 @@ function zpracujVstupSouboru(input){
   if(!soubor) return;
   const reader = new FileReader();
   reader.onload = e => {
-    try{ nacistData(JSON.parse(e.target.result)); }
+    try{
+      if(!String(e.target.result).trim()){
+        alert('Soubor je prázdný. Pokud ho vybíráš z Google Disku, zpřístupni ho nejdřív offline nebo stáhni do zařízení.');
+        return;
+      }
+      nacistData(JSON.parse(e.target.result));
+    }
     catch(err){ alert('Soubor se nepodařilo přečíst jako platný JSON rodokmenu.'); }
   };
   reader.readAsText(soubor);
@@ -1264,6 +1347,13 @@ function zpracujVstupSouboru(input){
 }
 
 let aktualniFileHandle = null;
+function stahnoutJakoFallback(obsah, jmeno){
+  const blob = new Blob([obsah], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = jmeno;
+  a.click();
+}
 async function ulozitSoubor(jakoNovy){
   const obsah = JSON.stringify(data, null, 2);
   const navrzeneJmeno = (data.meta.nazev||'rodokmen').replace(/[^a-z0-9\-_ ]/gi,'_') + '.json';
@@ -1280,7 +1370,16 @@ async function ulozitSoubor(jakoNovy){
       await writable.close();
       oznacUlozeno();
     } catch(e){
-      if(e.name!=='AbortError') alert('Uložení se nepovedlo: '+e.message);
+      if(e.name==='AbortError') return;
+      // 19.7.2026: na Androidu (Opera/Chrome) je zápis přes File System API
+      // zakázán ("createWritable ... not allowed") → soubor se místo toho stáhne
+      if(String(e.message).includes('not allowed') || e.name==='NotAllowedError' || e.name==='SecurityError'){
+        stahnoutJakoFallback(obsah, navrzeneJmeno);
+        alert('Tenhle prohlížeč neumí zapisovat přímo do souboru (typicky tablet/mobil). Rodokmen se místo toho stáhl jako soubor „'+navrzeneJmeno+'" — najdeš ho ve Stažených a můžeš ho přesunout na Disk.');
+        oznacUlozeno();
+      } else {
+        alert('Uložení se nepovedlo: '+e.message);
+      }
     }
   } else {
     const blob = new Blob([obsah], {type:'application/json'});
@@ -1411,7 +1510,7 @@ function vykresliPrilohy(id){
     const jeObr = (p.mime||'').startsWith('image/');
     const nahled = jeObr
       ? `<img src="${p.data}" onclick="otevriLightbox('${id}','${p.id}')" style="width:62px; height:62px; object-fit:cover; border-radius:6px; cursor:zoom-in; flex:none;">`
-      : `<div onclick="stahnoutPrilohu('${id}','${p.id}')" style="width:62px; height:62px; flex:none; display:flex; align-items:center; justify-content:center; font-size:28px; background:#efe7d6; border-radius:6px; cursor:pointer;">${(p.mime||'').includes('pdf')?'📕':'📄'}</div>`;
+      : `<div onclick="stahnoutPrilohu('${id}','${p.id}')" style="width:62px; height:62px; flex:none; display:flex; align-items:center; justify-content:center; font-size:28px; background:#3b3428; border-radius:6px; cursor:pointer;">${(p.mime||'').includes('pdf')?'📕':'📄'}</div>`;
     html += `<div class="priloha-radek">
       ${nahled}
       <div style="flex:1; min-width:0;">
