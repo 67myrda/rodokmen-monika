@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
 <title>KoŘeny rodu</title>
+<script>
+  // 3.8.2026 — motiv se musí nastavit DŘÍV než se appka vykreslí, jinak by
+  // bylo na zlomek vteřiny vidět špatné (bleskové) téma. Proto malý skript
+  // rovnou v <head>, před vlastním <style>.
+  (function(){
+    try{
+      var t = localStorage.getItem('rodokmen_tema_v1');
+      var tema = (t === 'svetly') ? 'svetly' : 'tmavy';
+      document.documentElement.setAttribute('data-tema', tema);
+      document.documentElement.style.colorScheme = (tema === 'svetly') ? 'light' : 'dark';
+    } catch(e){}
+  })();
+</script>
 <style>
   /* VYŘEŠENO fáze 7 (13.7.2026): kontrast písma zvýšen (tmavší --tmava/--akcent,
      tmavší barva let na kartě) podle zpětné vazby Myrdy ze staršího notebooku. */
@@ -25,6 +38,26 @@
     --muz:#7fa3c4; --zena:#cf8ba0;
     --bronz:#b07a42; --bronz-tmavy:#5e4023;
     --oliva:#6b6a45;        /* olivově zelená pro sekundární prvky */
+    --vstup:#352e22;        /* vnořené boxy — pole, řádky tabulky při hoveru... */
+    --tlumene:#a99a7b;      /* tlumený doplňkový text */
+    --zvyrazneni:#4a3c1c;   /* zvýrazněný (vybraný) řádek v tabulce */
+  }
+  /* ---------- SVĚTLÝ REŽIM (3.8.2026) ----------
+     Hlavička, patička, dlaždice "Strom" a plátno stromu ZŮSTÁVAJÍ vždy tmavě
+     bronzová/dřevěná — je to "rám alba", ne čtená plocha, a má vlastní pevný
+     kontrast (krémový text na tmavém dřevě), takže na motivu nezávisí.
+     Mění se jen čtené plochy: stránka, panely, tabulky, detail a info panel. */
+  :root[data-tema="svetly"]{
+    color-scheme: light;
+    --papir:#f7efdc;
+    --panel:#fffaf0;
+    --tmava:#2b2318;
+    --linka:#d9c9a3;
+    --akcent:#8a5a26;
+    --muz:#2f5878; --zena:#8a3f57;
+    --vstup:#f1e6c8;
+    --tlumene:#7a6a4a;
+    --zvyrazneni:#f0d9a0;
   }
   *{box-sizing:border-box;}
   body{
@@ -47,20 +80,20 @@
   }
   button:hover{opacity:.88;}
   button{background:linear-gradient(180deg, #c08a4d, #8a5a2f); box-shadow:0 1px 2px rgba(0,0,0,.4);}
-  button.sec{background:#3b3428; color:var(--tmava); box-shadow:none; border:1px solid var(--linka);}
+  button.sec{background:var(--vstup); color:var(--tmava); box-shadow:none; border:1px solid var(--linka);}
   button.btn-rozbalit{background:#2f6249; color:#fff;}
   button.btn-sbalit{background:#8a441f; color:#fff;}
   button.btn-smazat{background:#a33; color:#fff;}
   table{width:100%; border-collapse:collapse; font-size:13px;}
-  th,td{text-align:left; padding:5px 8px; border-bottom:1px solid #3a3327;}
+  th,td{text-align:left; padding:5px 8px; border-bottom:1px solid var(--linka);}
   th{color:var(--akcent); font-weight:normal; border-bottom:2px solid var(--linka);}
-  tr:hover{background:#352e22;}
+  tr:hover{background:var(--vstup);}
   .zena-rad{border-left:3px solid var(--zena);}
   .muz-rad{border-left:3px solid var(--muz);}
-  .zemrel{color:#9a8f7c;}
+  .zemrel{color:var(--tlumene);}
   .pill{
     display:inline-block; font-size:11px; padding:1px 7px; border-radius:10px;
-    background:#3b3428; color:var(--akcent); margin-left:6px;
+    background:var(--vstup); color:var(--akcent); margin-left:6px;
   }
   .pill.varovani{background:#4a2828; color:#e8a0a0;}
   .pill.ok{background:#28402e; color:#8fce9f;}
@@ -70,7 +103,7 @@
     display:none;
   }
   .kontrola-radek{padding:4px 0; font-size:13px;}
-  .generace-nadpis{background:#38311f; font-weight:bold;}
+  .generace-nadpis{background:var(--vstup); font-weight:bold;}
 
   /* ---------- HLAVIČKA (fáze 7) ---------- */
   header.hlavicka{
@@ -90,6 +123,7 @@
     padding:10px 18px; border-radius:8px; border:2px solid rgba(255,255,255,.25);
   }
   #btnUlozitHeader.stav-ulozeno{ background:#245c3f; }
+  #btnTema{ background:rgba(255,255,255,.12); color:#fbead2; border:1px solid rgba(255,255,255,.25); }
 
   /* ---------- DLAŽDICE STROM — bronzový rám + papírová textura uvnitř ---------- */
   .panel-strom{
@@ -123,7 +157,7 @@
     background:#332c21; border:1px solid #55482f; border-radius:6px;
     padding:10px 14px; font-size:13px; margin-top:12px;
   }
-  tr.zvyrazneno-radek{ background:#4a3c1c !important; }
+  tr.zvyrazneno-radek{ background:var(--zvyrazneni) !important; }
   .karta-obdelnik.zvyrazneno{ stroke:#c9781a; stroke-width:3.5; }
   .toggle-ikona{ cursor:pointer; user-select:none; }
   .toggle-ikona circle{ fill:#8a441f; stroke:#8a441f; stroke-width:1.5; }
@@ -145,7 +179,7 @@
 
   /* ---------- PATIČKA ---------- */
   footer.paticka{
-    text-align:center; font-size:12px; color:#8a7c62;
+    text-align:center; font-size:12px; color:var(--tlumene);
     padding:18px 0 6px; margin-top:6px;
   }
 
@@ -157,7 +191,7 @@
   #detailOverlay.otevreno{ display:block; }
   #detailPanel{
     position:fixed; top:0; right:0; width:380px; max-width:92vw; height:100vh;
-    background:#2c261d; border-left:1px solid var(--linka);
+    background:var(--panel); border-left:1px solid var(--linka);
     box-shadow:-6px 0 24px rgba(0,0,0,.5);
     transform:translateX(100%); transition:transform .22s ease;
     z-index:50; overflow-y:auto; padding:20px;
@@ -166,13 +200,13 @@
   #detailPanel label{ display:block; font-size:12px; color:var(--akcent); margin-top:10px; margin-bottom:3px; }
   #detailPanel input, #detailPanel select, #detailPanel textarea{
     width:100%; padding:7px 9px; border:1px solid var(--linka); border-radius:6px;
-    font-family:inherit; font-size:13px; background:#3b3428; color:var(--tmava);
+    font-family:inherit; font-size:13px; background:var(--vstup); color:var(--tmava);
   }
   #detailPanel h2{ font-size:18px; margin:0; }
   #detailPanel h3{ font-size:13px; color:var(--akcent); margin:0 0 8px 0; }
-  .svazek-box{ margin-bottom:8px; padding:8px 10px; background:#352e22; border-radius:6px; font-size:13px; }
-  .pridat-box{ margin-top:10px; padding:10px; background:#38301f; border-radius:6px; }
-  .priloha-radek{ display:flex; gap:10px; align-items:flex-start; padding:8px; background:#352e22; border-radius:8px; margin-bottom:8px; }
+  .svazek-box{ margin-bottom:8px; padding:8px 10px; background:var(--vstup); border-radius:6px; font-size:13px; }
+  .pridat-box{ margin-top:10px; padding:10px; background:var(--vstup); border-radius:6px; }
+  .priloha-radek{ display:flex; gap:10px; align-items:flex-start; padding:8px; background:var(--vstup); border-radius:8px; margin-bottom:8px; }
   #lightbox{
     position:fixed; inset:0; z-index:200; background:rgba(20,16,12,.88);
     display:none; align-items:center; justify-content:center; cursor:zoom-out;
@@ -214,10 +248,10 @@
     flex:1 1 48%; background:var(--papir); overflow-y:auto;
     padding:5vh 5vw; display:flex; flex-direction:column; justify-content:center;
   }
-  .uvitani-motto-male{ font-style:italic; font-size:12px; color:#a99a7b; margin-bottom:6px; }
+  .uvitani-motto-male{ font-style:italic; font-size:12px; color:var(--tlumene); margin-bottom:6px; }
   .uvitani-pozdrav{ font-family:"Palatino Linotype","Book Antiqua",Georgia,serif; font-size:26px; color:var(--akcent); margin:0; }
-  .uvitani-cas{ font-size:12px; color:#a99a7b; margin:4px 0 20px; }
-  .uvitani-nadpis-obsah{ font-size:11px; letter-spacing:.14em; color:#a99a7b; margin-bottom:8px; }
+  .uvitani-cas{ font-size:12px; color:var(--tlumene); margin:4px 0 20px; }
+  .uvitani-nadpis-obsah{ font-size:11px; letter-spacing:.14em; color:var(--tlumene); margin-bottom:8px; }
   .uvitani-staty{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:22px; }
   .uvitani-stat{ background:var(--panel); border:1px solid var(--linka); border-radius:8px; padding:10px 6px; text-align:center; }
   .uvitani-stat b{ display:block; font-size:20px; color:var(--tmava); }
@@ -245,7 +279,7 @@
   #infoOverlay.otevreno{ display:block; }
   #infoPanel{
     position:fixed; top:0; right:0; width:420px; max-width:92vw; height:100vh;
-    background:#2c261d; border-left:1px solid var(--linka);
+    background:var(--panel); border-left:1px solid var(--linka);
     box-shadow:-6px 0 24px rgba(0,0,0,.5);
     transform:translateX(100%); transition:transform .22s ease;
     z-index:60; overflow-y:auto; padding:20px;
@@ -277,6 +311,8 @@
   <symbol id="i-undo" viewBox="0 0 24 24"><path d="M7 7 3 11l4 4"/><path d="M3 11h11a6 6 0 0 1 0 12h-2"/></symbol>
   <symbol id="i-redo" viewBox="0 0 24 24"><path d="M17 7l4 4-4 4"/><path d="M21 11H10a6 6 0 0 0 0 12h2"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.3"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 6.8 6.8 0 0 0 20 14.5z"/></symbol>
 </svg>
 
 <div id="uvitani" class="skryto">
@@ -326,7 +362,10 @@
     <div class="podtitulek-app">Genealogie rodiny · přehled předků a potomků</div>
     <div class="motto-app">Strom roste z kořenů, člověk ze svých předků</div>
   </div>
-  <button id="btnUlozitHeader" onclick="ulozitSoubor(false)">Uložit 🔴</button>
+  <div style="display:flex; align-items:center; gap:8px;">
+    <button id="btnTema" class="sec" onclick="prepniTema()" style="padding:8px 12px;"></button>
+    <button id="btnUlozitHeader" onclick="ulozitSoubor(false)">Uložit 🔴</button>
+  </div>
 </header>
 
 <div class="panel-strom">
@@ -735,6 +774,33 @@ let panInicializovan = false;
 // textura vpravo od skutečného obsahu. Teď se šířka dopočítává ze skutečné
 // šířky kontejneru při každém překreslení, výška zůstává 560 (viz vykresliStrom).
 let sirkaPlatna = 1000, vyskaPlatna = 560;
+
+/* ---------- SVĚTLÝ/TMAVÝ REŽIM (3.8.2026) ----------
+   Motiv se nastavuje atributem data-tema na <html> (CSS to čte v :root[data-tema="svetly"]).
+   Prvotní nastavení běží ještě dřív, v malém skriptu v <head> (viz komentář tam) —
+   tahle část jen drží tlačítko/ikonu synchronizované a řeší přepnutí za běhu.
+   KRITICKÝ BOD (viz předávací protokol, Android/Opera bug): color-scheme se musí
+   nastavovat DYNAMICKY spolu s motivem, jinak by si Opera na Androidu mohla
+   světlý obsah násilně přebarvit — přesně bug, který dřív řešil color-scheme:dark
+   natvrdo. Proto se tu mění na dvou místech zároveň (inline style i <meta>). */
+const TEMA_KLIC = 'rodokmen_tema_v1';
+function nastavTema(tema){
+  document.documentElement.setAttribute('data-tema', tema);
+  document.documentElement.style.colorScheme = (tema === 'svetly') ? 'light' : 'dark';
+  const metaCS = document.querySelector('meta[name="color-scheme"]');
+  if(metaCS) metaCS.setAttribute('content', tema === 'svetly' ? 'light' : 'dark');
+  try{ localStorage.setItem(TEMA_KLIC, tema); } catch(e){}
+  const btn = document.getElementById('btnTema');
+  if(btn){
+    btn.innerHTML = tema === 'svetly'
+      ? '<svg class="i" viewBox="0 0 24 24"><use href="#i-moon"/></svg> Tmavý režim'
+      : '<svg class="i" viewBox="0 0 24 24"><use href="#i-sun"/></svg> Světlý režim';
+  }
+}
+function prepniTema(){
+  const aktualni = document.documentElement.getAttribute('data-tema') === 'svetly' ? 'svetly' : 'tmavy';
+  nastavTema(aktualni === 'tmavy' ? 'svetly' : 'tmavy');
+}
 let posledniKarty = [];
 let posledniBBox = null;
 
@@ -1541,7 +1607,7 @@ function otevriCasovouOsu(){
     });
     html += `</div><div style="display:flex; gap:2px; margin-top:6px;">`;
     dekady.forEach(d => {
-      html += `<div style="flex:1; text-align:center; font-size:10px; color:#a99a7b; white-space:nowrap;">${d.od}–${d.do_}</div>`;
+      html += `<div style="flex:1; text-align:center; font-size:10px; color:var(--tlumene); white-space:nowrap;">${d.od}–${d.do_}</div>`;
     });
     html += `</div></div></div>`;
   }
@@ -1829,7 +1895,7 @@ function vykresliPrilohy(id){
     const jeObr = (p.mime||'').startsWith('image/');
     const nahled = jeObr
       ? `<img src="${p.data}" onclick="otevriLightbox('${id}','${p.id}')" style="width:62px; height:62px; object-fit:cover; border-radius:6px; cursor:zoom-in; flex:none;">`
-      : `<div onclick="stahnoutPrilohu('${id}','${p.id}')" style="width:62px; height:62px; flex:none; display:flex; align-items:center; justify-content:center; font-size:28px; background:#3b3428; border-radius:6px; cursor:pointer;">${(p.mime||'').includes('pdf')?'📕':'📄'}</div>`;
+      : `<div onclick="stahnoutPrilohu('${id}','${p.id}')" style="width:62px; height:62px; flex:none; display:flex; align-items:center; justify-content:center; font-size:28px; background:var(--vstup); border-radius:6px; cursor:pointer;">${(p.mime||'').includes('pdf')?'📕':'📄'}</div>`;
     html += `<div class="priloha-radek">
       ${nahled}
       <div style="flex:1; min-width:0;">
@@ -2202,6 +2268,8 @@ function zvyrazniZeStromu(id){
 
 vykresliStrom(data);
 oznacUlozeno();
+// Synchronizace tlacitka/ikony s motivem, ktery uz nastavil FOUC-safe skript v <head>.
+nastavTema(document.documentElement.getAttribute('data-tema') === 'svetly' ? 'svetly' : 'tmavy');
 zkontrolujObnovuPriStartu();
 
 /* ---------- pan (tažení myší) a zoom (kolečko) ---------- */
