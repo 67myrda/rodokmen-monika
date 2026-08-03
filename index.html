@@ -41,6 +41,12 @@
     --vstup:#352e22;        /* vnořené boxy — pole, řádky tabulky při hoveru... */
     --tlumene:#a99a7b;      /* tlumený doplňkový text */
     --zvyrazneni:#4a3c1c;   /* zvýrazněný (vybraný) řádek v tabulce */
+    /* 3.8.2026 — výběr fontů: Constantia místo Palatino Linotype (elegantnější,
+       Myrdovi vadil Palatino nejvíc), Segoe UI pro čtený text (bezpatkové,
+       čitelné, umí tučně, nativní na Windows — appka poběží primárně tam).
+       Obojí systémové fonty — appka zůstává 100% offline, bez staženého souboru. */
+    --font-nadpis:"Constantia","Cambria","Palatino Linotype",Georgia,serif;
+    --font-text:"Segoe UI","Calibri","Verdana","Trebuchet MS",Arial,sans-serif;
   }
   /* ---------- SVĚTLÝ REŽIM (3.8.2026) ----------
      Hlavička, patička, dlaždice "Strom" a plátno stromu ZŮSTÁVAJÍ vždy tmavě
@@ -61,7 +67,7 @@
   }
   *{box-sizing:border-box;}
   body{
-    font-family:"Georgia","Times New Roman",serif;
+    font-family:var(--font-text);
     background:var(--papir); color:var(--tmava);
     margin:0; padding:0 24px 24px; line-height:1.5;
   }
@@ -113,7 +119,7 @@
     border-bottom:3px solid var(--bronz-tmavy);
   }
   header.hlavicka h1{
-    font-family:"Palatino Linotype","Book Antiqua",Georgia,serif;
+    font-family:var(--font-nadpis);
     color:#fbead2; margin:0; font-size:26px; letter-spacing:.5px;
     text-shadow:0 1px 2px rgba(0,0,0,.25);
   }
@@ -146,8 +152,8 @@
   .karta-obdelnik.muz{ stroke:var(--muz); }
   .karta-obdelnik.zena{ stroke:var(--zena); }
   .karta-obdelnik.zemrely{ fill:#d6cbb2; opacity:.82; }
-  .karta-jmeno{ font-family:"Georgia",serif; font-size:13px; fill:#2e2620; }
-  .karta-roky{ font-family:"Georgia",serif; font-size:11px; fill:#5d5546; }
+  .karta-jmeno{ font-family:var(--font-text); font-size:13px; fill:#2e2620; }
+  .karta-roky{ font-family:var(--font-text); font-size:11px; fill:#5d5546; }
   .spojnice{ stroke:#a8946f; stroke-width:1.5; fill:none; }
   .spojnice-vedlejsi{ stroke-dasharray:5 4; opacity:.75; }
   .badge-vedlejsi{ cursor:pointer; }
@@ -240,7 +246,7 @@
     display:flex; align-items:flex-end; padding:5vw;
   }
   .uvitani-hero-text{
-    font-family:"Palatino Linotype","Book Antiqua",Georgia,serif; font-style:italic;
+    font-family:var(--font-nadpis); font-style:italic;
     font-size:clamp(17px,2.1vw,24px); line-height:1.5; margin:0; max-width:520px;
     color:#f0e2c0; text-shadow:0 2px 14px rgba(0,0,0,.75);
   }
@@ -249,7 +255,7 @@
     padding:5vh 5vw; display:flex; flex-direction:column; justify-content:center;
   }
   .uvitani-motto-male{ font-style:italic; font-size:12px; color:var(--tlumene); margin-bottom:6px; }
-  .uvitani-pozdrav{ font-family:"Palatino Linotype","Book Antiqua",Georgia,serif; font-size:26px; color:var(--akcent); margin:0; }
+  .uvitani-pozdrav{ font-family:var(--font-nadpis); font-size:26px; color:var(--akcent); margin:0; }
   .uvitani-cas{ font-size:12px; color:var(--tlumene); margin:4px 0 20px; }
   .uvitani-nadpis-obsah{ font-size:11px; letter-spacing:.14em; color:var(--tlumene); margin-bottom:8px; }
   .uvitani-staty{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:22px; }
@@ -269,7 +275,7 @@
   }
   @media (max-width:860px), (orientation:portrait){
     .uvitani-scena{ flex-direction:column; overflow-y:auto; }
-    .uvitani-leva{ flex:0 0 26vh; min-height:180px; padding:20px; }
+    .uvitani-leva{ flex:0 0 26vh; min-height:180px; padding:20px; background-position:top center; }
     .uvitani-prava{ flex:1 1 auto; padding:24px; justify-content:flex-start; overflow-y:visible; }
     .uvitani-staty, .uvitani-mala-tlacitka{ grid-template-columns:repeat(4,1fr); }
   }
@@ -1107,7 +1113,7 @@ function sestavObsahStromu(d, jeExport){
         <image href="${o.foto}" x="10" y="9" width="36" height="36" clip-path="url(#klip_${k.id}${jeExport?'_e':''})" preserveAspectRatio="xMidYMid slice" style="pointer-events:none"/>`;
     } else {
       vnitrek += `<circle cx="28" cy="27" r="18" fill="${o.pohlavi==='z'?'var(--zena)':'var(--muz)'}" opacity="0.22" style="pointer-events:none"/>
-        <text x="28" y="32" text-anchor="middle" font-size="14" font-family="Georgia,serif" fill="var(--tmava)" style="pointer-events:none">${escHtml((o.jmeno||'?').charAt(0))}</text>`;
+        <text x="28" y="32" text-anchor="middle" font-size="14" font-family="Segoe UI,Arial,sans-serif" fill="var(--tmava)" style="pointer-events:none">${escHtml((o.jmeno||'?').charAt(0))}</text>`;
     }
     vnitrek += `<title>${escHtml(o.jmeno+' '+o.prijmeni)}, ${escHtml(roky)}</title><text class="karta-jmeno" x="52" y="22" style="pointer-events:none">${escHtml(zkratitText(o.jmeno+' '+o.prijmeni, CARD_W-52-10, 13))}</text>
       <text class="karta-roky" x="52" y="40" style="pointer-events:none">${escHtml(zkratitText(roky, CARD_W-52-10, 11))}</text>`;
@@ -1183,7 +1189,7 @@ function exportovatPNG(){
   // mimo dokument appky by se var(--zena) apod. jinak neprojevily.
   const styl = `
     :root{ --zena:#a8677c; --muz:#5c7a99; --tmava:#2e2620; }
-    text{ font-family:Georgia,'Times New Roman',serif; }
+    text{ font-family:'Segoe UI',Arial,sans-serif; }
     .karta-obdelnik{ fill:#fffdf7; stroke-width:2; }
     .karta-obdelnik.muz{ stroke:var(--muz); }
     .karta-obdelnik.zena{ stroke:var(--zena); }
