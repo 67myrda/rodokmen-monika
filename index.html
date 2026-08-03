@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
-<title>KoŘeny rodu — M68</title>
+<title>KoŘeny rodu</title>
 <style>
   /* VYŘEŠENO fáze 7 (13.7.2026): kontrast písma zvýšen (tmavší --tmava/--akcent,
      tmavší barva let na kartě) podle zpětné vazby Myrdy ze staršího notebooku. */
@@ -197,16 +197,16 @@
     background-size:cover; background-position:center; background-repeat:no-repeat;
     display:flex; align-items:flex-end; padding:5vw;
   }
-  .uvitani-nazev{
-    font-family:"Palatino Linotype","Book Antiqua",Georgia,serif;
-    font-size:clamp(30px,5vw,56px); margin:0; color:#f0e2c0; text-shadow:0 2px 14px rgba(0,0,0,.7);
+  .uvitani-hero-text{
+    font-family:"Palatino Linotype","Book Antiqua",Georgia,serif; font-style:italic;
+    font-size:clamp(17px,2.1vw,24px); line-height:1.5; margin:0; max-width:520px;
+    color:#f0e2c0; text-shadow:0 2px 14px rgba(0,0,0,.75);
   }
-  .uvitani-nazev .pismeno-r{ color:var(--akcent); }
-  .uvitani-motto-uvod{ font-style:italic; font-size:15px; margin-top:10px; color:#d9c9a3; text-shadow:0 1px 8px rgba(0,0,0,.7); }
   .uvitani-prava{
     flex:1 1 48%; background:var(--papir); overflow-y:auto;
     padding:5vh 5vw; display:flex; flex-direction:column; justify-content:center;
   }
+  .uvitani-motto-male{ font-style:italic; font-size:12px; color:#a99a7b; margin-bottom:6px; }
   .uvitani-pozdrav{ font-family:"Palatino Linotype","Book Antiqua",Georgia,serif; font-size:26px; color:var(--akcent); margin:0; }
   .uvitani-cas{ font-size:12px; color:#a99a7b; margin:4px 0 20px; }
   .uvitani-nadpis-obsah{ font-size:11px; letter-spacing:.14em; color:#a99a7b; margin-bottom:8px; }
@@ -267,11 +267,12 @@
   <div class="uvitani-scena">
     <div class="uvitani-leva">
       <div>
-        <h1 class="uvitani-nazev">Ko<span class="pismeno-r">Ř</span>eny rodu</h1>
-        <div class="uvitani-motto-uvod">Strom roste z kořenů, člověk ze svých předků</div>
+        <p class="uvitani-hero-text">Od Pasterky na starém pomezí, přes Nový Bydžov a Hradec Králové,
+          až k Sekeřicím — kořeny rodin Krbových a Řeháčkových prorostly krajinou i časem v jeden strom.</p>
       </div>
     </div>
     <div class="uvitani-prava">
+      <div class="uvitani-motto-male">Motto: Strom roste z kořenů, člověk ze svých předků</div>
       <h2 class="uvitani-pozdrav">Vítej zpátky, Moniko.</h2>
       <div id="uvitaniPosledniZmena" class="uvitani-cas"></div>
       <div class="uvitani-nadpis-obsah">RODOKMEN OBSAHUJE</div>
@@ -305,8 +306,8 @@
 
 <header class="hlavicka">
   <div>
-    <h1><svg class="i" viewBox="0 0 24 24"><use href="#i-tree"/></svg> KoŘeny rodu <span style="opacity:.85; font-size:19px;">— M68</span></h1>
-    <div class="podtitulek-app">Genealogie rodiny · přehled předků a potomků · pro Moniku</div>
+    <h1><svg class="i" viewBox="0 0 24 24"><use href="#i-tree"/></svg> KoŘeny rodu</h1>
+    <div class="podtitulek-app">Genealogie rodiny · přehled předků a potomků</div>
     <div class="motto-app">Strom roste z kořenů, člověk ze svých předků</div>
   </div>
   <button id="btnUlozitHeader" onclick="ulozitSoubor(false)">Uložit 🔴</button>
@@ -337,7 +338,7 @@
 </div>
 
 <div class="panel">
-  <h2 class="devrozbal" onclick="prepniDevSekci()">🔧 Kontrolní nástroje (pro tebe i Moniku, dobrovolné) ▾</h2>
+  <h2 class="devrozbal" onclick="prepniDevSekci()">🔧 Kontrolní nástroje ▾</h2>
   <div id="devObsah" class="devobsah">
     <h3 style="font-size:14px; margin:12px 0 6px;">Přehled dat</h3>
     <div id="statistiky"></div>
@@ -378,7 +379,7 @@
   </div>
 </div>
 
-<footer class="paticka">Pro M68 &nbsp;©&nbsp; ⁶⁷〽️ &amp; 🔆Claude 2026</footer>
+<footer class="paticka">Pro Moni &nbsp;©&nbsp; ⁶⁷〽️ &amp; 🔆Claude 2026</footer>
 
 <script>
 /* ==========================================================
@@ -712,6 +713,11 @@ let vybraneOsoby = new Set();
 let vybranySvazekId = null;
 let pan = {x:0, y:0, scale:1};
 let panInicializovan = false;
+// 3.8.2026 — oprava prázdného pruhu vpravo: SVG plátno mělo napevno 1000×560,
+// ale #stromWrap je width:100% -> na širších obrazovkách vznikala prázdná
+// textura vpravo od skutečného obsahu. Teď se šířka dopočítává ze skutečné
+// šířky kontejneru při každém překreslení, výška zůstává 560 (viz vykresliStrom).
+let sirkaPlatna = 1000, vyskaPlatna = 560;
 let posledniKarty = [];
 let posledniBBox = null;
 
@@ -1065,8 +1071,9 @@ function vykresliStrom(d){
   }
   document.getElementById("prekryvVysledek").innerHTML = hlaska;
 
+  sirkaPlatna = document.getElementById("stromWrap").clientWidth || 1000;
   document.getElementById("stromWrap").innerHTML =
-    `<svg id="stromSvg" width="1000" height="560" xmlns="http://www.w3.org/2000/svg">
+    `<svg id="stromSvg" width="${sirkaPlatna}" height="${vyskaPlatna}" xmlns="http://www.w3.org/2000/svg">
       <g id="viewportG">${vnitrek}</g>
     </svg>`;
 
@@ -1138,15 +1145,15 @@ function exportovatPNG(){
 function domu(){
   if(!posledniBBox) return;
   const {minX,minY,w,h} = posledniBBox;
-  pan.scale = Math.max(0.2, Math.min(3, Math.min(1000/w, 560/h) * 0.92));
-  pan.x = 500 - pan.scale*(minX + w/2);
-  pan.y = 280 - pan.scale*(minY + h/2);
+  pan.scale = Math.max(0.2, Math.min(3, Math.min(sirkaPlatna/w, vyskaPlatna/h) * 0.92));
+  pan.x = sirkaPlatna/2 - pan.scale*(minX + w/2);
+  pan.y = vyskaPlatna/2 - pan.scale*(minY + h/2);
   aplikujTransform();
 }
 function vycentrujNaKartu(k){
   pan.scale = Math.max(pan.scale, 0.9); // ať je výsledek čitelný
-  pan.x = 500 - pan.scale*(k.x + 87);   // střed karty (CARD_W/2)
-  pan.y = 280 - pan.scale*(k.y + 27);
+  pan.x = sirkaPlatna/2 - pan.scale*(k.x + 87);   // střed karty (CARD_W/2)
+  pan.y = vyskaPlatna/2 - pan.scale*(k.y + 27);
   aplikujTransform();
 }
 function naKoren(){
