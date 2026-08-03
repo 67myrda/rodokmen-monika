@@ -181,52 +181,133 @@
   #lightbox img{ max-width:94vw; max-height:88vh; border-radius:6px; box-shadow:0 10px 50px rgba(0,0,0,.6); }
   .lightbox-popis{ position:fixed; bottom:18px; left:0; right:0; text-align:center; color:#f0e6cf; font-size:14px; text-shadow:0 1px 3px #000; }
 
-  /* ---------- UVÍTACÍ OBRAZOVKA (19.7.2026, plán §7.7) ---------- */
-  #uvitani{
-    position:fixed; inset:0; z-index:100;
-    background:rgba(46,38,32,.55); display:flex; align-items:center; justify-content:center;
-  }
+  /* ---------- IKONY (3.8.2026) ---------- */
+  .i{ width:15px; height:15px; vertical-align:-2px; fill:none; stroke:currentColor;
+      stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; margin-right:2px; }
+  .motto-app{ font-style:italic; font-size:13px; color:var(--akcent); opacity:.85; margin-top:2px; }
+  button.vypnuto, button:disabled{ opacity:.4; cursor:not-allowed; }
+
+  /* ---------- UVÍTACÍ OBRAZOVKA — REDESIGN "Rodinná kronika" (3.8.2026) ---------- */
+  #uvitani{ position:fixed; inset:0; z-index:100; background:#000; }
   #uvitani.skryto{ display:none; }
-  .uvitani-okno{
-    background:var(--papir); border:2px solid var(--bronz); border-radius:14px;
-    max-width:520px; width:92vw; padding:28px 30px; box-shadow:0 12px 40px rgba(0,0,0,.35);
-    text-align:center;
+  .uvitani-scena{ display:flex; width:100%; height:100%; }
+  .uvitani-leva{
+    flex:1 1 52%; min-width:0; position:relative;
+    background-image:url('pozadi-uvitani.jpg'), linear-gradient(160deg,#2c2418,#171310 75%);
+    background-size:cover; background-position:center; background-repeat:no-repeat;
+    display:flex; align-items:flex-end; padding:5vw;
   }
-  .uvitani-okno h2{
+  .uvitani-nazev{
     font-family:"Palatino Linotype","Book Antiqua",Georgia,serif;
-    font-size:24px; margin:0 0 6px; color:var(--akcent); border:none;
+    font-size:clamp(30px,5vw,56px); margin:0; color:#f0e2c0; text-shadow:0 2px 14px rgba(0,0,0,.7);
   }
-  .uvitani-okno .uvitani-text{ font-size:14px; color:var(--tmava); margin:14px 0 20px; text-align:left; line-height:1.6; }
-  .uvitani-okno button{ display:block; width:100%; margin:8px 0 0; padding:12px; font-size:15px; }
-  .uvitani-okno button.sec{ font-size:13px; }
-  .uvitani-obnova{
-    background:#3d3115; border:1px solid #6b5426; border-radius:8px;
-    padding:10px 12px; font-size:13px; margin-bottom:6px; text-align:left;
+  .uvitani-nazev .pismeno-r{ color:var(--akcent); }
+  .uvitani-motto-uvod{ font-style:italic; font-size:15px; margin-top:10px; color:#d9c9a3; text-shadow:0 1px 8px rgba(0,0,0,.7); }
+  .uvitani-prava{
+    flex:1 1 48%; background:var(--papir); overflow-y:auto;
+    padding:5vh 5vw; display:flex; flex-direction:column; justify-content:center;
   }
+  .uvitani-pozdrav{ font-family:"Palatino Linotype","Book Antiqua",Georgia,serif; font-size:26px; color:var(--akcent); margin:0; }
+  .uvitani-cas{ font-size:12px; color:#a99a7b; margin:4px 0 20px; }
+  .uvitani-nadpis-obsah{ font-size:11px; letter-spacing:.14em; color:#a99a7b; margin-bottom:8px; }
+  .uvitani-staty{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:22px; }
+  .uvitani-stat{ background:var(--panel); border:1px solid var(--linka); border-radius:8px; padding:10px 6px; text-align:center; }
+  .uvitani-stat b{ display:block; font-size:20px; color:var(--tmava); }
+  .uvitani-stat span{ font-size:10px; color:var(--akcent); text-transform:uppercase; letter-spacing:.03em; }
+  .uvitani-stat-prazdno{ font-size:13px; color:var(--akcent); margin-bottom:16px; }
+  .uvitani-hlavni{
+    width:100%; padding:16px; font-size:16px; margin-bottom:10px; text-align:center;
+    background:linear-gradient(180deg,var(--bronz),var(--bronz-tmavy)); border:none; border-radius:10px; color:#f5ead2;
+  }
+  .uvitani-btn-pop{ display:block; font-size:11px; font-weight:normal; opacity:.85; margin-top:2px; }
+  .uvitani-dva-radky{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+  .uvitani-mala-tlacitka{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:10px; }
+  .uvitani-mala-tlacitka button{
+    font-size:11px; padding:10px 4px; background:var(--panel); border:1px solid var(--linka); border-radius:8px; color:var(--tmava);
+  }
+  @media (max-width:860px){
+    .uvitani-scena{ flex-direction:column; }
+    .uvitani-leva{ flex:0 0 30vh; padding:20px; }
+    .uvitani-prava{ flex:1; padding:24px; justify-content:flex-start; }
+    .uvitani-staty, .uvitani-mala-tlacitka{ grid-template-columns:repeat(4,1fr); }
+  }
+
+  /* ---------- INFO PANEL (Co chybí / Časová osa / Fotografie / Nápověda) — 3.8.2026 ---------- */
+  #infoOverlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; z-index:45; }
+  #infoOverlay.otevreno{ display:block; }
+  #infoPanel{
+    position:fixed; top:0; right:0; width:420px; max-width:92vw; height:100vh;
+    background:#2c261d; border-left:1px solid var(--linka);
+    box-shadow:-6px 0 24px rgba(0,0,0,.5);
+    transform:translateX(100%); transition:transform .22s ease;
+    z-index:60; overflow-y:auto; padding:20px;
+  }
+  #infoPanel.otevreno{ transform:translateX(0); }
+  #infoPanel h2{ font-size:18px; margin:0; }
+  #infoPanel h3{ font-size:13px; color:var(--akcent); margin:14px 0 6px; }
 </style>
 </head>
 <body>
 
+<svg style="display:none;">
+  <symbol id="i-tree" viewBox="0 0 24 24"><path d="M12 3l4 5h-2.5l3.5 4.5h-3L17 17H7l3-4.5H7L10.5 8H8z"/><line x1="12" y1="17" x2="12" y2="21"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><line x1="15" y1="15" x2="20" y2="20"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l6-6 4 4 3-3 4 4"/></symbol>
+  <symbol id="i-checklist" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.3a2.5 2.5 0 1 1 3.9 2.1c-.9.6-1.4 1.1-1.4 2.1"/><line x1="12" y1="16.3" x2="12" y2="16.4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol>
+</svg>
+
 <div id="uvitani" class="skryto">
-  <div class="uvitani-okno">
-    <h2>🌳 KoŘeny rodu — M68</h2>
-    <div style="font-size:13px; color:var(--akcent);">Rodinné album, které si píšeš sama</div>
-    <div class="uvitani-text">
-      <b>1.</b> Celý rodokmen je jeden soubor — ulož si ho do své složky Google Drive a o zálohu se stará Google.<br>
-      <b>2.</b> Klikni na kartu osoby a v pravém panelu můžeš vše dopisovat, přepisovat i přidávat fotky a příbuzné.<br>
-      <b>3.</b> Značka „−" větev sbalí do základního zobrazení, „+N" ji zase rozbalí; myší strom posouváš, kolečkem přibližuješ.
+  <div class="uvitani-scena">
+    <div class="uvitani-leva">
+      <div>
+        <h1 class="uvitani-nazev">Ko<span class="pismeno-r">Ř</span>eny rodu</h1>
+        <div class="uvitani-motto-uvod">Strom roste z kořenů, člověk ze svých předků</div>
+      </div>
     </div>
-    <div id="uvitaniObnova"></div>
-    <button onclick="uvitaniOtevrit()">📂 Otevřít můj rodokmen</button>
-    <button onclick="uvitaniNovy()">✨ Začít nový strom</button>
-    <button class="sec" onclick="uvitaniUkazka()">👀 Prohlédnout ukázku (testovací rodina)</button>
+    <div class="uvitani-prava">
+      <h2 class="uvitani-pozdrav">Vítej zpátky, Moniko.</h2>
+      <div id="uvitaniPosledniZmena" class="uvitani-cas"></div>
+      <div class="uvitani-nadpis-obsah">RODOKMEN OBSAHUJE</div>
+      <div id="uvitaniStatistiky" class="uvitani-staty"></div>
+
+      <button id="uvitaniPokracovatBtn" class="uvitani-hlavni" onclick="uvitaniObnovit()">
+        <svg class="i" viewBox="0 0 24 24" style="width:18px;height:18px;"><use href="#i-tree"/></svg> Pokračovat
+        <span class="uvitani-btn-pop">Otevřít naposledy používaný rodokmen</span>
+      </button>
+      <div class="uvitani-dva-radky">
+        <button class="sec" onclick="uvitaniOtevrit()"><svg class="i" viewBox="0 0 24 24"><use href="#i-folder"/></svg> Otevřít jiný</button>
+        <button class="sec" onclick="uvitaniNovy()"><svg class="i" viewBox="0 0 24 24"><use href="#i-plus"/></svg> Nový rodokmen</button>
+      </div>
+
+      <div class="uvitani-mala-tlacitka">
+        <button id="uvitaniBtnVyhledat" onclick="uvitaniVyhledat()"><svg class="i" viewBox="0 0 24 24"><use href="#i-search"/></svg><br>Vyhledat</button>
+        <button id="uvitaniBtnCoChybi" onclick="uvitaniCoChybi()"><svg class="i" viewBox="0 0 24 24"><use href="#i-checklist"/></svg><br>Co chybí</button>
+        <button id="uvitaniBtnOsa" onclick="uvitaniCasovaOsa()"><svg class="i" viewBox="0 0 24 24"><use href="#i-clock"/></svg><br>Časová osa</button>
+        <button id="uvitaniBtnFotky" onclick="uvitaniFotografie()"><svg class="i" viewBox="0 0 24 24"><use href="#i-image"/></svg><br>Fotografie</button>
+        <button onclick="otevriNapovedu()"><svg class="i" viewBox="0 0 24 24"><use href="#i-help"/></svg><br>Nápověda</button>
+      </div>
+      <button class="sec" onclick="uvitaniUkazka()"><svg class="i" viewBox="0 0 24 24"><use href="#i-eye"/></svg> Prohlédnout ukázku (testovací rodina)</button>
+    </div>
   </div>
+</div>
+
+<div id="infoOverlay" onclick="zavriInfoPanel()"></div>
+<div id="infoPanel">
+  <div id="infoObsah"></div>
 </div>
 
 <header class="hlavicka">
   <div>
-    <h1>🌳 KoŘeny rodu <span style="opacity:.85; font-size:19px;">— M68</span></h1>
+    <h1><svg class="i" viewBox="0 0 24 24"><use href="#i-tree"/></svg> KoŘeny rodu <span style="opacity:.85; font-size:19px;">— M68</span></h1>
     <div class="podtitulek-app">Genealogie rodiny · přehled předků a potomků · pro Moniku</div>
+    <div class="motto-app">Strom roste z kořenů, člověk ze svých předků</div>
   </div>
   <button id="btnUlozitHeader" onclick="ulozitSoubor(false)">Uložit 🔴</button>
 </header>
@@ -234,14 +315,15 @@
 <div class="panel-strom">
   <h2>Strom</h2>
   <div class="lista-ovladani">
-    <button onclick="domu()">🏠 Domů</button>
-    <button onclick="naKoren()">🎯 Na kořen</button>
-    <span style="white-space:nowrap;">🔍 <input id="hledani" placeholder="Najít osobu…" style="width:150px; font-size:13px; padding:5px 8px;"
+    <button onclick="domu()"><svg class="i" viewBox="0 0 24 24"><use href="#i-home"/></svg> Domů</button>
+    <button onclick="naKoren()"><svg class="i" viewBox="0 0 24 24"><use href="#i-target"/></svg> Na kořen</button>
+    <button onclick="otevriCoChybi()"><svg class="i" viewBox="0 0 24 24"><use href="#i-checklist"/></svg> Co chybí</button>
+    <span style="white-space:nowrap;"><svg class="i" viewBox="0 0 24 24"><use href="#i-search"/></svg> <input id="hledani" placeholder="Najít osobu…" style="width:150px; font-size:13px; padding:5px 8px;"
       oninput="hledejOsobu(this.value)"></span>
     <span id="hledaniVysledek" style="font-size:12px; color:var(--akcent);"></span>
     <button class="btn-rozbalit" onclick="rozbalitVse()">Rozbalit vše</button>
     <button class="btn-sbalit" onclick="sbalitVse()">Sbalit vše</button>
-    <button class="sec" onclick="exportovatPNG()">🖼️ Export PNG</button>
+    <button class="sec" onclick="exportovatPNG()"><svg class="i" viewBox="0 0 24 24"><use href="#i-image"/></svg> Export PNG</button>
     <span style="font-size:12px; margin-left:8px;">Klik na kartu = detail a editace, tažení/prst = posun, kolečko/sevření prstů = zoom, − na kartě = sbalit větev, čárkovaná linka = další sňatek, oranžový štítek „+N dětí" pod partnerem = děti z dalšího sňatku (klik = detail)</span>
   </div>
   <div id="stromWrap"></div>
@@ -1076,8 +1158,12 @@ function hledejOsobu(text){
   const q = (text||'').trim().toLowerCase();
   const vysledek = document.getElementById('hledaniVysledek');
   if(q.length < 2){ vysledek.textContent = ''; return; }
-  const shody = Object.entries(data.osoby).filter(([id,o]) =>
-    ((o.jmeno||'')+' '+(o.prijmeni||'')+' '+(o.rodnePrijmeni||'')).toLowerCase().includes(q));
+  const shody = Object.entries(data.osoby).filter(([id,o]) => {
+    const misto = (o.narozeni && o.narozeni.misto) || '';
+    const rok = (o.narozeni && o.narozeni.datum) ? String(o.narozeni.datum).slice(0,4) : '';
+    return ((o.jmeno||'')+' '+(o.prijmeni||'')+' '+(o.rodnePrijmeni||'')+' '+misto+' '+rok)
+      .toLowerCase().includes(q);
+  });
   if(!shody.length){ vysledek.textContent = 'Nikdo nenalezen.'; return; }
   const [id, o] = shody[0];
   vysledek.textContent = shody.length===1
@@ -1233,17 +1319,72 @@ async function idbNacti(){
 }
 function autosaveDoLocalStorage(){ // název ponechán kvůli volajícím; uvnitř už IndexedDB
   if(!uvitaniVyrizeno) return; // neškrábat havarijní kopii, dokud běží uvítání
+  data.meta.upraveno = new Date().toISOString(); // 3.8.2026: "Poslední změna" na uvítačce
   idbUloz({data, ulozenoV: new Date().toISOString()})
     .catch(e => console.warn('Autosave do IndexedDB selhal:', e));
 }
-/* ---------- UVÍTACÍ OBRAZOVKA (19.7.2026, plán §7.7) ----------
-   Nahrazuje dřívější confirm() dialog obnovy. Autosave se navíc NEZAPISUJE,
-   dokud uživatel nevybere start — dřív hrozilo, že klikání v testovacích
-   datech potichu přepíše havarijní kopii rozpracovaného rodokmenu. */
+/* ---------- UVÍTACÍ OBRAZOVKA — REDESIGN "Rodinná kronika" (3.8.2026) ----------
+   Navazuje na fázi 19.7.2026 (autosave se nezapisuje, dokud uživatel nevybere start).
+   Nově: fullscreen dvousloupcová scéna, reálné statistiky rodokmenu a odemčení
+   "Pokračovat / Vyhledat / Co chybí / Časová osa / Fotografie" jen pokud existuje
+   rozpracovaná verze v IndexedDB (jinak nemá appka co otevřít). */
 let uvitaniVyrizeno = false;
+
+function formatRelativniCas(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  const zacatekDnes = new Date(); zacatekDnes.setHours(0,0,0,0);
+  const zacatekDne = new Date(d); zacatekDne.setHours(0,0,0,0);
+  const rozdilDny = Math.round((zacatekDnes - zacatekDne) / 86400000);
+  const cas = d.toLocaleTimeString('cs-CZ', {hour:'2-digit', minute:'2-digit'});
+  if(rozdilDny === 0) return 'dnes v ' + cas;
+  if(rozdilDny === 1) return 'včera v ' + cas;
+  if(rozdilDny > 1 && rozdilDny < 7) return 'před ' + rozdilDny + ' dny';
+  return d.toLocaleDateString('cs-CZ') + ' v ' + cas;
+}
+function pocetFotografii(d){
+  let n = 0;
+  Object.values(d.osoby).forEach(o => {
+    if(o.foto) n++;
+    (o.prilohy||[]).forEach(p => { if(p.mime && p.mime.startsWith('image/')) n++; });
+  });
+  return n;
+}
+function pocetDokumentuBezFotek(d){
+  let n = 0;
+  Object.values(d.osoby).forEach(o => {
+    (o.prilohy||[]).forEach(p => { if(!(p.mime && p.mime.startsWith('image/'))) n++; });
+  });
+  return n;
+}
+function vykresliUvitaniStatistiky(d){
+  const el = document.getElementById('uvitaniStatistiky');
+  const cas = document.getElementById('uvitaniPosledniZmena');
+  if(!el) return;
+  if(!d){
+    el.innerHTML = '<div class="uvitani-stat-prazdno">Zatím žádný otevřený rodokmen na tomto zařízení.</div>';
+    if(cas) cas.textContent = '';
+    return;
+  }
+  el.innerHTML = `
+    <div class="uvitani-stat"><b>${pocetOsob(d)}</b><span>osob</span></div>
+    <div class="uvitani-stat"><b>${pocetSvazku(d)}</b><span>rodin</span></div>
+    <div class="uvitani-stat"><b>${pocetFotografii(d)}</b><span>fotografií</span></div>
+    <div class="uvitani-stat"><b>${pocetDokumentuBezFotek(d)}</b><span>dokumentů</span></div>
+  `;
+  if(cas) cas.textContent = '🕘 Poslední změna: ' + formatRelativniCas(d.meta && d.meta.upraveno);
+}
+function nastavStavUvitaciTlacitek(zapnuto){
+  ['uvitaniPokracovatBtn','uvitaniBtnVyhledat','uvitaniBtnCoChybi','uvitaniBtnOsa','uvitaniBtnFotky'].forEach(id => {
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    btn.disabled = !zapnuto;
+    btn.classList.toggle('vypnuto', !zapnuto);
+  });
+}
 async function zkontrolujObnovuPriStartu(){
   const overlay = document.getElementById('uvitani');
-  overlay.classList.remove('skryto'); // ukázat hned, tlačítko obnovy se případně doplní
+  overlay.classList.remove('skryto');
   let parsed = null;
   try{ parsed = await idbNacti(); } catch(e){ console.warn('Čtení IndexedDB selhalo:', e); }
   if(!parsed){
@@ -1252,17 +1393,149 @@ async function zkontrolujObnovuPriStartu(){
       if(ls) parsed = JSON.parse(ls);
     } catch(e){}
   }
-  if(parsed && parsed.data && !uvitaniVyrizeno){
-    const datumText = new Date(parsed.ulozenoV).toLocaleString('cs-CZ');
-    document.getElementById('uvitaniObnova').innerHTML =
-      `<div class="uvitani-obnova">🕘 Mám rozpracovanou verzi z minula (${datumText}).</div>
-       <button onclick="uvitaniObnovit()">↩️ Pokračovat v rozpracované verzi</button>`;
-    window._uvitaniAutosave = parsed.data;
-  }
+  const maObnovu = !!(parsed && parsed.data);
+  if(maObnovu && !uvitaniVyrizeno) window._uvitaniAutosave = parsed.data;
+  vykresliUvitaniStatistiky(maObnovu ? parsed.data : null);
+  nastavStavUvitaciTlacitek(maObnovu);
 }
 function zavriUvitani(){
   uvitaniVyrizeno = true;
   document.getElementById('uvitani').classList.add('skryto');
+}
+// Pomocná: nejdřív otevři poslední rodokmen (jako Pokračovat), pak spusť akci.
+// Malé dlaždice (Vyhledat/Co chybí/Časová osa/Fotografie) jsou vypnuté tlačítkem
+// disabled, dokud window._uvitaniAutosave neexistuje — akce se tedy nikdy
+// nezavolá bez dat, ale kontrola zůstává i tady pro jistotu.
+function uvitaniPokracovatA(akce){
+  if(!window._uvitaniAutosave) return;
+  uvitaniObnovit();
+  if(akce) akce();
+}
+function uvitaniVyhledat(){
+  uvitaniPokracovatA(() => { const inp = document.getElementById('hledani'); if(inp) inp.focus(); });
+}
+function uvitaniCoChybi(){ uvitaniPokracovatA(() => otevriCoChybi()); }
+function uvitaniCasovaOsa(){ uvitaniPokracovatA(() => otevriCasovouOsu()); }
+function uvitaniFotografie(){ uvitaniPokracovatA(() => otevriFotografie()); }
+
+/* ---------- INFO PANEL — Co chybí / Časová osa / Fotografie / Nápověda (3.8.2026) ----------
+   Sdílený boční panel pro čtyři jednoduché přehledy. Fotografie a Časová osa
+   jsou VĚDOMĚ zjednodušené (mřížka náhledů / sloupcový graf podle desetiletí) —
+   plnohodnotná galerie a interaktivní osa jsou označené jako budoucí práce,
+   ne tiše vynechané. */
+function zavriInfoPanel(){
+  document.getElementById('infoPanel').classList.remove('otevreno');
+  document.getElementById('infoOverlay').classList.remove('otevreno');
+}
+function otevriInfoObsah(html){
+  document.getElementById('infoObsah').innerHTML = html;
+  document.getElementById('infoPanel').classList.add('otevreno');
+  document.getElementById('infoOverlay').classList.add('otevreno');
+}
+function spocitejCoChybi(d){
+  // POZN.: datum úmrtí záměrně nekontrolujeme — "umrti":null značí stejně
+  // dobře "žije" jako "nezjištěno" a appka to bez dalšího příznaku v modelu
+  // nedokáže rozlišit. TODO budoucí kolo: odhad podle věku (>90 let od
+  // narození bez úmrtí = "možná chybí"), zatím by to bylo jen hádání.
+  const skupiny = { datum:[], misto:[], foto:[], dokument:[], rodice:[], partner:[] };
+  const maRodice = new Set();
+  d.svazky.forEach(s => (s.deti||[]).forEach(id => maRodice.add(id)));
+  const maPartnera = new Set();
+  d.svazky.forEach(s => (s.partneri||[]).forEach(id => maPartnera.add(id)));
+  Object.entries(d.osoby).forEach(([id,o]) => {
+    const jmeno = ((o.jmeno||'')+' '+(o.prijmeni||'')).trim() || id;
+    if(!o.narozeni || !o.narozeni.datum) skupiny.datum.push({id,jmeno});
+    if(!o.narozeni || !o.narozeni.misto) skupiny.misto.push({id,jmeno});
+    if(!o.foto) skupiny.foto.push({id,jmeno});
+    if(!(o.prilohy && o.prilohy.length)) skupiny.dokument.push({id,jmeno});
+    if(!maRodice.has(id)) skupiny.rodice.push({id,jmeno});
+    if(!maPartnera.has(id)) skupiny.partner.push({id,jmeno});
+  });
+  return skupiny;
+}
+function otevriCoChybi(){
+  const s = spocitejCoChybi(data);
+  const sekce = [
+    ['datum','📅 Chybí datum narození'], ['misto','📍 Chybí místo narození'],
+    ['foto','🖼️ Chybí fotografie'], ['dokument','📄 Chybí aspoň jeden dokument'],
+    ['rodice','👪 Nemá zapsané rodiče'], ['partner','💍 Nemá zapsaného partnera/sňatek'],
+  ];
+  let html = `<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Co ještě chybí</h2><button class="sec" onclick="zavriInfoPanel()" style="padding:4px 10px;">✕</button></div>
+    <div style="font-size:13px; color:var(--akcent); margin:6px 0 4px;">Náměty k dalšímu bádání — klikni na jméno pro otevření karty osoby.</div>`;
+  let neco = false;
+  sekce.forEach(([klic,nadpis]) => {
+    const seznam = s[klic];
+    if(!seznam.length) return;
+    neco = true;
+    html += `<h3>${nadpis} (${seznam.length})</h3><div style="font-size:13px; line-height:1.9;">`;
+    seznam.forEach(({id,jmeno}) => {
+      html += `<span style="display:inline-block; margin:2px 8px 2px 0; cursor:pointer; text-decoration:underline dotted;"
+        onclick="zavriInfoPanel(); vyberOsobu('${id}', true);">${escHtml(jmeno)}</span>`;
+    });
+    html += `</div>`;
+  });
+  if(!neco) html += `<div style="font-size:13px; margin-top:10px;">Všechno vypadá kompletně — pěkná práce! 🎉</div>`;
+  otevriInfoObsah(html);
+}
+function otevriCasovouOsu(){
+  const roky = Object.values(data.osoby)
+    .map(o => o.narozeni && o.narozeni.datum ? parseInt(String(o.narozeni.datum).slice(0,4)) : null)
+    .filter(r => r && r > 1000);
+  let html = `<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Časová osa narození</h2><button class="sec" onclick="zavriInfoPanel()" style="padding:4px 10px;">✕</button></div>`;
+  if(!roky.length){
+    html += `<div style="font-size:13px; margin-top:10px;">Zatím nejsou zapsaná žádná data narození.</div>`;
+  } else {
+    const podleDesetileti = {};
+    roky.forEach(r => { const dcada = Math.floor(r/10)*10; podleDesetileti[dcada] = (podleDesetileti[dcada]||0)+1; });
+    const klice = Object.keys(podleDesetileti).sort((a,b)=>a-b);
+    const max = Math.max(...klice.map(k=>podleDesetileti[k]));
+    html += `<div style="font-size:13px; color:var(--akcent); margin:6px 0 14px;">${Math.min(...roky)}–${Math.max(...roky)} · zjednodušený přehled po desetiletích</div>`;
+    klice.forEach(k => {
+      const pocet = podleDesetileti[k];
+      const sirka = Math.max(8, Math.round(pocet/max*100));
+      html += `<div style="display:flex; align-items:center; gap:8px; margin:4px 0; font-size:12px;">
+        <div style="width:48px;">${k}s</div>
+        <div style="flex:1; background:var(--linka); border-radius:4px; overflow:hidden;">
+          <div style="width:${sirka}%; background:var(--akcent); padding:3px 6px; color:#211c15; font-weight:bold;">${pocet}</div>
+        </div></div>`;
+    });
+  }
+  otevriInfoObsah(html);
+}
+function otevriFotografie(){
+  let polozky = [];
+  Object.entries(data.osoby).forEach(([id,o]) => {
+    if(o.foto) polozky.push({id, src:o.foto, popis:((o.jmeno||'')+' '+(o.prijmeni||'')).trim()});
+    (o.prilohy||[]).forEach(p => {
+      if(p.mime && p.mime.startsWith('image/'))
+        polozky.push({id, src:p.data, popis:((o.jmeno||'')+' '+(o.prijmeni||'')).trim()+' — '+(p.nazev||'dokument')});
+    });
+  });
+  let html = `<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Fotografie (${polozky.length})</h2><button class="sec" onclick="zavriInfoPanel()" style="padding:4px 10px;">✕</button></div>
+    <div style="font-size:13px; color:var(--akcent); margin:6px 0 14px;">Zjednodušený přehled — klik na fotku otevře kartu osoby.</div>`;
+  if(!polozky.length){
+    html += `<div style="font-size:13px;">Zatím žádné fotografie.</div>`;
+  } else {
+    html += `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); gap:8px;">`;
+    polozky.forEach(p => {
+      html += `<div style="cursor:pointer;" title="${escHtml(p.popis)}" onclick="zavriInfoPanel(); vyberOsobu('${p.id}', true);">
+        <img src="${p.src}" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; border:1px solid var(--linka);"></div>`;
+    });
+    html += `</div>`;
+  }
+  otevriInfoObsah(html);
+}
+function otevriNapovedu(){
+  otevriInfoObsah(`<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Nápověda</h2><button class="sec" onclick="zavriInfoPanel()" style="padding:4px 10px;">✕</button></div>
+    <div style="font-size:14px; line-height:1.8; margin-top:12px;">
+      <b>1.</b> Celý rodokmen je jeden soubor — ulož si ho do své složky Google Drive a o zálohu se stará Google.<br>
+      <b>2.</b> Klikni na kartu osoby a v pravém panelu můžeš vše dopisovat, přepisovat i přidávat fotky a příbuzné.<br>
+      <b>3.</b> Značka „−" větev sbalí do základního zobrazení, „+N" ji zase rozbalí; myší strom posouváš, kolečkem přibližuješ.
+    </div>`);
 }
 function uvitaniObnovit(){
   data = window._uvitaniAutosave;
@@ -1355,6 +1628,7 @@ function stahnoutJakoFallback(obsah, jmeno){
   a.click();
 }
 async function ulozitSoubor(jakoNovy){
+  data.meta.upraveno = new Date().toISOString();
   const obsah = JSON.stringify(data, null, 2);
   const navrzeneJmeno = (data.meta.nazev||'rodokmen').replace(/[^a-z0-9\-_ ]/gi,'_') + '.json';
   if(typeof window!=='undefined' && 'showSaveFilePicker' in window){
